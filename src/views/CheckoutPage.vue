@@ -41,7 +41,7 @@ const placeOrder = () => {
         <h1>📦 Buyurtma berish</h1>
 
         <div class="field">
-          <label>Ism va Familiya *</label>
+          <label>Ism  *</label>
           <input v-model="form.name" placeholder="Sardor Karimov" />
         </div>
 

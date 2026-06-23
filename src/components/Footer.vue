@@ -31,7 +31,7 @@
 
       <div class="col">
         <h4>Aloqa</h4>
-        <p>📍 Toshkent, O'zbekiston</p>
+        <p>📍 Surxondaryo, O'zbekiston</p>
         <p>📞 +998 90 123 45 67</p>
         <p>✉️ info@supermarket.uz</p>
         <p>🕐 07:00 – 23:00</p>
