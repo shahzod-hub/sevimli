@@ -286,7 +286,7 @@ const products = [
     unit: "dona"
   },
   {
-    id: 2,
+    id: 22,
     name: "cofe",
     title: "cofe",
     description: "Energiya beruvchi, sifatli kofe",
