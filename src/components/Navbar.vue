@@ -12,6 +12,7 @@ const menuOpen = ref(false);
   <nav class="navbar">
     <div class="nav-inner">
       <router-link to="/" class="logo">
+
         🛒 <span>Super<b>Market</b></span>
       </router-link>
 
