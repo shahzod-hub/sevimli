@@ -52,7 +52,7 @@ const pad = (n) => String(n).padStart(2, "0");
           </div>
         </div>
 
-        <router-link to="/" class="btn">Xarid qilish →</router-link>
+        <router-link to="/home" class="btn">Xarid qilish →</router-link>
       </div>
 
       <div class="right">
