@@ -1,35 +1,13 @@
-const mockUsers = [
-  {
-    id: 1,
-    name: 'Ali Valiyev',
-    email: 'ali@test.com',
-    phone: '+998901234567',
-    password: 'password123',
-    token: 'mock_token_ali_abc123',
-    role: 'customer',
-  },
-  {
-    id: 2,
-    name: 'Malika Karimova',
-    email: 'malika@test.com',
-    phone: '+998971234567',
-    password: 'malika2026',
-    token: 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/',
-    role: 'admin',
-  },
-]
 
-let nextId = 3
 
-function delay(ms = 900) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+const BASE_URL = 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli'
 
 
 export async function mockSignin(email, password) {
-  await delay(900)
+  const res = await fetch(`${BASE_URL}/sevimli?email=${email}`)
+  const users = await res.json()
 
-  const user = mockUsers.find((u) => u.email === email && u.password === password)
+  const user = users.find((u) => u.email === email && u.password === password)
 
   if (user) {
     return {
@@ -45,7 +23,7 @@ export async function mockSignin(email, password) {
             phone: user.phone,
             role: user.role,
           },
-          token: user.token,
+          token: 'mock_token_' + user.id + '_' + Math.random().toString(36).slice(2, 8),
           expires_in: '24h',
         },
       },
@@ -64,9 +42,11 @@ export async function mockSignin(email, password) {
 
 
 export async function mockSignup({ name, phone, email, password }) {
-  await delay(1000)
 
-  if (mockUsers.find((u) => u.email === email)) {
+  const checkRes = await fetch(`${BASE_URL}/sevimli?email=${email}`)
+  const existing = await checkRes.json()
+
+  if (existing.length > 0) {
     return {
       success: false,
       data: {
@@ -77,16 +57,14 @@ export async function mockSignup({ name, phone, email, password }) {
     }
   }
 
-  const newUser = {
-    id: nextId++,
-    name,
-    email,
-    phone,
-    password,
-    token: 'mock_token_' + email.split('@')[0] + '_' + Math.random().toString(36).slice(2, 8),
-    role: 'customer',
-  }
-  mockUsers.push(newUser)
+  
+  const res = await fetch(`${BASE_URL}/sevimli`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, phone, password, role: 'customer' }),
+  })
+
+  const newUser = await res.json()
 
   return {
     success: true,
@@ -101,7 +79,7 @@ export async function mockSignup({ name, phone, email, password }) {
           phone: newUser.phone,
           role: newUser.role,
         },
-        token: newUser.token,
+        token: 'mock_token_' + newUser.id + '_' + Math.random().toString(36).slice(2, 8),
         expires_in: '24h',
       },
     },
@@ -110,7 +88,6 @@ export async function mockSignup({ name, phone, email, password }) {
 
 
 export async function mockForgotPassword(email) {
-  await delay(700)
   return {
     success: true,
     data: {

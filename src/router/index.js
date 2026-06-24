@@ -8,8 +8,8 @@ import ContactPage from "../views/ContactPage.vue";
 import NotFoundPage from "../views/NotFoundPage.vue";
 import ProductPage from "../views/ProductPage.vue";
 import CheckoutPage from "../views/CheckoutPage.vue";
-import SignInPage from "../pages/SignInPage.vue";
-import SignUpPage from "../pages/SignUpPage.vue";
+import SignInPage from "./pages/SignInPage.vue";
+import SignUpPage from "./pages/SignUpPage.vue";
 
 const router = createRouter({
   history: createWebHistory(),
