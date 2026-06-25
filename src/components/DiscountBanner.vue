@@ -51,9 +51,9 @@ const pad = (n) => String(n).padStart(2, "0");
             <span>Soniya</span>
           </div>
         </div>
-
-        <router-link to="/home" class="btn">Xarid qilish →</router-link>
-      </div>
+</div>
+        <router-link to="/product/${product.id}" class="btn">Xarid qilish →</router-link>
+      
 
       <div class="right">
         <img

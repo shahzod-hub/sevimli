@@ -102,7 +102,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { mockSignup } from './mockAuth'
+import { mockSignup } from '../../api/mockAuth'
 
 const router = useRouter()
 
@@ -184,22 +184,34 @@ async function doSignup() {
   loading.value = true
   apiResponse.value = null
 
-  const result = await mockSignup({
-    name: form.name,
-    phone: form.phone,
-    email: form.email,
-    password: form.password,
-  })
+  try {
+    const result = await mockSignup({
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      password: form.password,
+    })
 
-  loading.value = false
-  apiResponse.value = result
+    apiResponse.value = result
 
-  if (result.success) {
-    showToast("Ro'yxatdan o'tdingiz! Xush kelibsiz 🎉", 'success')
-    localStorage.setItem('token', result.data.data.token)
-    setTimeout(() => router.push('/home'), 1200)
-  } else {
-    showToast(result.data.message, 'error')
+    if (result.success) {
+      showToast("Ro'yxatdan o'tdingiz! Xush kelibsiz 🎉", 'success')
+      localStorage.setItem('token', result.data.data.token)
+      setTimeout(() => router.push('/home'), 1200)
+    } else {
+      showToast(result.data?.message || result.message || 'Xatolik yuz berdi', 'error')
+    }
+  } catch (error) {
+    apiResponse.value = {
+      success: false,
+      data: {
+        message: 'Serverga bog‘lanishda xatolik yuz berdi',
+        error: error?.message || 'NETWORK_ERROR',
+      },
+    }
+    showToast('Server bilan ulanib bo‘lmadi, qayta urinib ko‘ring', 'error')
+  } finally {
+    loading.value = false
   }
 }
 </script>

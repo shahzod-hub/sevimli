@@ -6,7 +6,7 @@
       <h2>Sahifa topilmadi</h2>
       <p>Kechirasiz, siz qidirayotgan sahifa mavjud emas yoki o'chirilgan.</p>
       <div class="actions">
-        <router-link to="/" class="home-btn">🏠 Bosh sahifaga</router-link>
+        <router-link to="/home" class="home-btn">🏠 Bosh sahifaga</router-link>
         <router-link to="/contact" class="contact-btn">Yordam</router-link>
       </div>
     </div>

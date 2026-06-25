@@ -10,6 +10,8 @@ import ProductPage from "../views/ProductPage.vue";
 import CheckoutPage from "../views/CheckoutPage.vue";
 import SignInPage from "./pages/SignInPage.vue";
 import SignUpPage from "./pages/SignUpPage.vue";
+import Navbar from "../components/Navbar.vue";
+import products from "../data/products";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -30,9 +32,14 @@ const router = createRouter({
     { path: "/favorites", component: FavoritesPage },
     { path: "/about", component: AboutPage },
     { path: "/contact", component: ContactPage },
-    { path: "/product/:id", component: ProductPage },
+    {path: "/product/:id", component: ProductPage},
+    ...products.map((p) => ({
+      path: `/product/${p.id}`,
+      name: `product-${p.id}`,
+      component: ProductPage,
+      props: { product: p },
+    })),
     { path: "/checkout", component: CheckoutPage },
-    { path: "/:pathMatch(.*)*", component: NotFoundPage },
   ],
   scrollBehavior() {
     return { top: 0 };

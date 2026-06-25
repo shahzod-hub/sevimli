@@ -14,7 +14,7 @@
 
       <div class="col">
         <h4>Sahifalar</h4>
-        <router-link to="/">Bosh sahifa</router-link>
+        <router-link to="/home">Bosh sahifa</router-link>
         <router-link to="/cart">Savat</router-link>
         <router-link to="/favorites">Sevimlilar</router-link>
         <router-link to="/about">Biz haqimizda</router-link>
@@ -23,10 +23,13 @@
 
       <div class="col">
         <h4>Kategoriyalar</h4>
-        <router-link to="/">Mevalar</router-link>
-        <router-link to="/">Sabzavotlar</router-link>
-        <router-link to="/">Ichimliklar</router-link>
-        <router-link to="/">Shirinliklar</router-link>
+        <router-link to="/home">Mevalar</router-link>
+        <router-link to="/home">Sabzavotlar</router-link>
+        <router-link to="/home">Ichimliklar</router-link>
+        <router-link to="/home">Shirinliklar</router-link>
+         <router-link to="/home">go'shtlar</router-link>
+          <router-link to="/home">Sut mahsulotlari</router-link>
+            <router-link to="/home">quruq mevalar&choylar</router-link>
       </div>
 
       <div class="col">

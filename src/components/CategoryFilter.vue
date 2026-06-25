@@ -9,8 +9,11 @@ const categories = [
   { label: "Barchasi", icon: "🏪" },
   { label: "Mevalar", icon: "🍎" },
   { label: "Sabzavotlar", icon: "🥦" },
-  { label: "Ichimliklar", icon: "🥛" },
+  { label: "Ichimliklar", icon: "🥤" },
   { label: "Shirinliklar", icon: "🍫" },
+    { label: "Go'shtlar", icon: "🍖" },
+    { label: "Sut mahsulotlar", icon: "🥛" },
+     { label: "Quruq mevalar & choylar", icon: "🍵" }
 ];
 </script>
 

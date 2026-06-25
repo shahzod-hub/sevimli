@@ -12,7 +12,7 @@ const router = useRouter();
 
     <div class="hero-content">
       <div class="left">
-        <div class="eyebrow">🌿 O'zbekistonning #1 online do'koni</div>
+        <div class="eyebrow">🌿 Surxondaryoning #1 online do'koni</div>
         <h1>
           Yangi va Sifatli<br>
           <span class="highlight">Mahsulotlar</span><br>
@@ -24,7 +24,7 @@ const router = useRouter();
         </p>
 
         <div class="hero-actions">
-          <button class="btn-primary" @click="router.push('/')">
+          <button class="btn-primary" @click="router.push('/:pathMatch(.*)*')">
             🛒 Xarid boshlash
           </button>
           <button class="btn-secondary" @click="router.push('/about')">
@@ -57,7 +57,7 @@ const router = useRouter();
             alt="Fresh produce"
           />
           <div class="float-card card-1">
-            <span>✅</span> Yetkazib berildi!
+            <span>✅</span> Yetkazib beriladi!
           </div>
           <div class="float-card card-2">
             <span>🔥</span> 20% chegirma

@@ -1,9 +1,13 @@
 <script setup>
-import { ref, provide } from "vue";
+import { ref, provide, computed } from "vue";
+import { useRoute } from "vue-router";
 import Navbar from "./components/Navbar.vue";
 import Footer from "./components/Footer.vue";
 
+const route = useRoute();
 const toasts = ref([]);
+
+const showNavbar = computed(() => !["/signin", "/signup"].includes(route.path));
 
 const showToast = (message, type = "success") => {
   const id = Date.now();
@@ -17,11 +21,11 @@ provide("showToast", showToast);
 </script>
 
 <template>
-  <Navbar />
+  <Navbar v-if="showNavbar" />
   <router-view />
   <Footer />
 
-  <!-- Toast Notifications -->
+
   <div class="toast-container">
     <transition-group name="toast">
       <div
