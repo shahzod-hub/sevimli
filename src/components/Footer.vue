@@ -27,6 +27,9 @@
         <router-link to="/home">Sabzavotlar</router-link>
         <router-link to="/home">Ichimliklar</router-link>
         <router-link to="/home">Shirinliklar</router-link>
+         <router-link to="/home">go'shtlar</router-link>
+          <router-link to="/home">Sut mahsulotlari</router-link>
+            <router-link to="/home">quruq mevalar&choylar</router-link>
       </div>
 
       <div class="col">

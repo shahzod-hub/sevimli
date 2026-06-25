@@ -6,7 +6,7 @@
       <div class="logo">
         <div class="logo-icon">🛒</div>
         <div>
-          <div class="logo-text">FreshMart</div>
+          <div class="logo-text">Sevimli market</div>
           <div class="logo-sub">Online supermarket</div>
         </div>
       </div>
