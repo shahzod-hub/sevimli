@@ -1,4 +1,5 @@
 <template>
+  
   <div class="auth-page">
     <div class="wrap">
       <!-- Logo -->
@@ -76,7 +77,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { mockSignin } from './mockAuth'
+import { mockSignin } from '../../api/mockAuth'
 
 const router = useRouter()
 
@@ -112,17 +113,29 @@ async function doSignin() {
   loading.value = true
   apiResponse.value = null
 
-  const result = await mockSignin(form.email, form.password)
+  try {
+    const result = await mockSignin(form.email, form.password)
 
-  loading.value = false
-  apiResponse.value = result
+    apiResponse.value = result
 
-  if (result.success) {
-    showToast('Xush kelibsiz, ' + result.data.data.user.name + '! 🛒', 'success')
-    localStorage.setItem('token', result.data.data.token)
-    setTimeout(() => router.push('/home'), 1200)
-  } else {
-    showToast('Email yoki parol xato', 'error')
+    if (result.success) {
+      showToast('Xush kelibsiz, ' + result.data.data.user.name + '! 🛒', 'success')
+      localStorage.setItem('token', result.data.data.token)
+      setTimeout(() => router.push('/home'), 1200)
+    } else {
+      showToast(result.data?.message || 'Email yoki parol xato', 'error')
+    }
+  } catch (error) {
+    apiResponse.value = {
+      success: false,
+      data: {
+        message: 'Serverga bog‘lanishda xatolik yuz berdi',
+        error: error?.message || 'NETWORK_ERROR',
+      },
+    }
+    showToast('Server bilan ulanib bo‘lmadi, qayta urinib ko‘ring', 'error')
+  } finally {
+    loading.value = false
   }
 }
 

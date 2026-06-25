@@ -32,7 +32,7 @@ const toggleFav = () => {
 <template>
   <div v-if="product" class="page">
     <div class="breadcrumb">
-      <router-link to="/">Bosh sahifa</router-link>
+      <router-link to="/home">Bosh sahifa</router-link>
       <span>›</span>
       <span>{{ product.category }}</span>
       <span>›</span>
@@ -96,7 +96,7 @@ const toggleFav = () => {
 
   <div v-else class="not-found">
     <h2>Mahsulot topilmadi</h2>
-    <router-link to="/">← Ortga qaytish</router-link>
+    <router-link to="/home">← Ortga qaytish</router-link>
   </div>
 </template>
 

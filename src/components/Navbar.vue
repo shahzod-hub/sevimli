@@ -11,13 +11,13 @@ const menuOpen = ref(false);
 <template>
   <nav class="navbar">
     <div class="nav-inner">
-      <router-link to="/" class="logo">
+      <router-link to="/home" class="logo">
 
         🛒 <span>Super<b>Market</b></span>
       </router-link>
 
       <div class="nav-links" :class="{ open: menuOpen }">
-        <router-link to="/" @click="menuOpen = false">Bosh sahifa</router-link>
+        <router-link to="/home" @click="menuOpen = false">Bosh sahifa</router-link>
         <router-link to="/about" @click="menuOpen = false">Biz haqimizda</router-link>
         <router-link to="/contact" @click="menuOpen = false">Aloqa</router-link>
       </div>
