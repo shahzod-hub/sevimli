@@ -4,12 +4,6 @@
       <div class="col brand">
         <h3>🛒 SuperMarket</h3>
         <p>Eng sifatli mahsulotlarni uyingizga yetkazib beramiz. Sog'lom ovqatlanish — baxtli hayot!</p>
-        <div class="socials">
-          <a href="#">📘</a>
-          <a href="#">📸</a>
-          <a href="#">🐦</a>
-          <a href="#">▶️</a>
-        </div>
       </div>
 
       <div class="col">

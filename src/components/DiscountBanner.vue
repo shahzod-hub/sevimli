@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 
 const hours = ref(5);
 const minutes = ref(42);
@@ -25,6 +26,8 @@ onMounted(() => {
 onUnmounted(() => clearInterval(timer));
 
 const pad = (n) => String(n).padStart(2, "0");
+const router = useRouter();
+const goToProductsList = () => router.push('/home');
 </script>
 
 <template>
@@ -52,7 +55,7 @@ const pad = (n) => String(n).padStart(2, "0");
           </div>
         </div>
 </div>
-        <router-link to="/product/${product.id}" class="btn">Xarid qilish →</router-link>
+        <button class="btn" @click="goToProductsList">Xarid qilish →</button>
       
 
       <div class="right">

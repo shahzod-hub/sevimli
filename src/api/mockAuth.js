@@ -1,4 +1,5 @@
 const BASE_URL = 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli'
+const USERS_ENDPOINT = `${BASE_URL}/sevimli`
 const STORAGE_KEY = 'sevimli_mock_users'
 
 const initialUsers = [
@@ -9,6 +10,14 @@ const initialUsers = [
     phone: '+998901234567',
     password: 'password123',
     role: 'customer',
+  },
+  {
+    id: '2',
+    name: 'Admin Test',
+    email: 'admin@test.com',
+    phone: '+998907654321',
+    password: 'adminpassword',
+    role: 'admin',
   },
 ]
 
@@ -39,21 +48,31 @@ export async function mockSignin(email, password) {
   await delay(900)
 
   try {
-    let sevimli = getStoredUsers()
+    let sevimli
+    let remoteOk = false
 
-    // Try remote API first
+    // Avval mockapi'ga murojaat qilamiz
     try {
-      const res = await fetch(`${BASE_URL}/sevimli?email=${encodeURIComponent(email)}`, {
+      const res = await fetch(`${USERS_ENDPOINT}?email=${encodeURIComponent(email)}`, {
         signal: AbortSignal.timeout(5000),
       })
       if (res.ok) {
         const remoteUsers = await res.json()
-        if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+        if (Array.isArray(remoteUsers)) {
           sevimli = remoteUsers
+          remoteOk = true
         }
       }
     } catch (e) {
       console.log('MockAPI unavailable, using localStorage')
+    }
+
+    // FAQAT mockapi butunlay ishlamasa (tarmoq xatosi va h.k.) localStorage'ga
+    // qaytamiz. Agar mockapi javob bergan-u, lekin user topilmagan bo'lsa
+    // (bo'sh array qaytgan bo'lsa), buni "bunday user yo'q" deb hisoblaymiz va
+    // local test userlarga (ali@test.com, admin@test.com) qaytib ketmaymiz.
+    if (!remoteOk) {
+      sevimli = getStoredUsers()
     }
 
     const user = sevimli.find((u) => u.email === email && u.password === password)
@@ -71,16 +90,18 @@ export async function mockSignin(email, password) {
 
     const token = generateToken(email)
 
-    // Try to update on remote
-    try {
-      await fetch(`${BASE_URL}/sevimli/${user.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...user, token }),
-        signal: AbortSignal.timeout(5000),
-      })
-    } catch (e) {
-      console.log('Could not update remote, continuing locally')
+    // Remote'da bo'lsa, tokenni yangilashga harakat qilamiz
+    if (remoteOk) {
+      try {
+        await fetch(`${USERS_ENDPOINT}/${user.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...user, token }),
+          signal: AbortSignal.timeout(5000),
+        })
+      } catch (e) {
+        console.log('Could not update remote, continuing locally')
+      }
     }
 
     return {
@@ -117,21 +138,27 @@ export async function mockSignup({ name, phone, email, password }) {
   await delay(1000)
 
   try {
-    let sevimli = getStoredUsers()
+    let sevimli
+    let remoteOk = false
 
-    // Try remote API first
+    // Avval mockapi'ga murojaat qilamiz - shu email band emasligini tekshiramiz
     try {
-      const res = await fetch(`${BASE_URL}/sevimli?email=${encodeURIComponent(email)}`, {
+      const res = await fetch(`${USERS_ENDPOINT}?email=${encodeURIComponent(email)}`, {
         signal: AbortSignal.timeout(5000),
       })
       if (res.ok) {
         const remoteUsers = await res.json()
-        if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+        if (Array.isArray(remoteUsers)) {
           sevimli = remoteUsers
+          remoteOk = true
         }
       }
     } catch (e) {
       console.log('MockAPI unavailable, using localStorage')
+    }
+
+    if (!remoteOk) {
+      sevimli = getStoredUsers()
     }
 
     if (sevimli.some((u) => u.email === email)) {
@@ -156,26 +183,32 @@ export async function mockSignup({ name, phone, email, password }) {
       role: 'customer',
     }
 
-    // Try to create on remote
+    // Remote'da yaratishga harakat qilamiz
     let createdUser = newUser
-    try {
-      const res = await fetch(`${BASE_URL}/sevimli`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser),
-        signal: AbortSignal.timeout(5000),
-      })
-      if (res.ok) {
-        createdUser = await res.json()
+    let createdRemotely = false
+    if (remoteOk) {
+      try {
+        const res = await fetch(`${USERS_ENDPOINT}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser),
+          signal: AbortSignal.timeout(5000),
+        })
+        if (res.ok) {
+          createdUser = await res.json()
+          createdRemotely = true
+        }
+      } catch (e) {
+        console.log('Could not create on remote, saving locally')
       }
-    } catch (e) {
-      console.log('Could not create on remote, saving locally')
     }
 
-    // Save to localStorage
-    const storedSevimli = getStoredUsers()
-    storedSevimli.push(newUser)
-    saveStoredUsers(storedSevimli)
+    // Remote'ga yoza olmagan bo'lsak, localStorage'ga zaxira sifatida saqlaymiz
+    if (!createdRemotely) {
+      const storedSevimli = getStoredUsers()
+      storedSevimli.push(newUser)
+      saveStoredUsers(storedSevimli)
+    }
 
     return {
       success: true,

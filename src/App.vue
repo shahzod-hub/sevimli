@@ -4,10 +4,14 @@ import { useRoute } from "vue-router";
 import Navbar from "./components/Navbar.vue";
 import Footer from "./components/Footer.vue";
 
+import AdminLayout from './components/layout/AdminLayout.vue';
+
 const route = useRoute();
 const toasts = ref([]);
 
-const showNavbar = computed(() => !["/signin", "/signup"].includes(route.path));
+const showNavbar = computed(() => !["/signin", "/signup"].includes(route.path) && !route.path.startsWith("/admin"));
+const showFooter = computed(() => !["/signin", "/signup", "/checkout"].includes(route.path) && !route.path.startsWith("/admin"));
+const isAdminPage = computed(() => route.path.startsWith('/admin'));
 
 const showToast = (message, type = "success") => {
   const id = Date.now();
@@ -21,9 +25,16 @@ provide("showToast", showToast);
 </script>
 
 <template>
-  <Navbar v-if="showNavbar" />
-  <router-view />
-  <Footer />
+  <div v-if="isAdminPage" class="admin-wrapper">
+    <AdminLayout>
+      <router-view />
+    </AdminLayout>
+  </div>
+  <div v-else class="public-wrapper">
+    <Navbar v-if="showNavbar" />
+    <router-view />
+    <Footer v-if="showFooter" />
+  </div>
 
 
   <div class="toast-container">
@@ -40,6 +51,16 @@ provide("showToast", showToast);
   </div>
 </template>
 
+
+
+<style>
+/* Butun loyiha uchun umumiy stillar (margin va paddinglarni tozalash) */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+</style>
 <style>
 * {
   margin: 0;

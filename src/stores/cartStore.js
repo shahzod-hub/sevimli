@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-
+  import { addToCart as addCartApi,getCart } from "../api/mockCart";
 export const useCartStore = defineStore("cart", {
   state: () => ({
     items: JSON.parse(localStorage.getItem("cart")) || []
@@ -18,15 +18,31 @@ export const useCartStore = defineStore("cart", {
       localStorage.setItem("cart", JSON.stringify(this.items));
     },
 
-    addToCart(product) {
-      const existingItem = this.items.find(item => item.id === product.id);
-      if (existingItem) {
-        existingItem.quantity++;
-      } else {
-        this.items.push({ ...product, quantity: 1 });
-      }
+    setItems(items) {
+      this.items = items;
       this.saveToLocalStorage();
     },
+
+async addToCart(product) {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const existingItem = this.items.find(item => item.id === product.id);
+
+  if (existingItem) {
+    existingItem.quantity++;
+  } else {
+    this.items.push({
+      ...product,
+      quantity: 1
+    });
+  }
+
+  this.saveToLocalStorage();
+
+  if (user.id) {
+    await addCartApi(user.id, product);
+  }
+},
 
     increaseQuantity(id) {
       const item = this.items.find(item => item.id === id);

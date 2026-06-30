@@ -197,6 +197,7 @@ async function doSignup() {
     if (result.success) {
       showToast("Ro'yxatdan o'tdingiz! Xush kelibsiz 🎉", 'success')
       localStorage.setItem('token', result.data.data.token)
+      localStorage.setItem('user', JSON.stringify(result.data.data.user))
       setTimeout(() => router.push('/home'), 1200)
     } else {
       showToast(result.data?.message || result.message || 'Xatolik yuz berdi', 'error')
