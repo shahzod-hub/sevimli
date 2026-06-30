@@ -1,6 +1,12 @@
 <template>
   
   <div class="auth-page">
+    <!-- Top Header for direct Admin access -->
+    <div class="auth-header">
+      <router-link to="/admin" class="admin-header-link">
+        🛠️ Admin Panel
+      </router-link>
+    </div>
     <div class="wrap">
       <!-- Logo -->
       <div class="logo">
@@ -37,7 +43,7 @@
               {{ showPass ? '🙈' : '👁️' }}
             </span>
           </div>
-          <span class="forgot" @click="forgotPassword">Parolni unutdingizmi?</span>
+    
         </div>
 
         <button class="submit-btn" :disabled="loading" @click="doSignin">
@@ -47,7 +53,11 @@
         <div class="divider">yoki</div>
 
         <button class="demo-btn" @click="fillDemo">
-          👤 Demo hisob bilan to'ldirish
+          👤 Mijoz demo hisob
+        </button>
+
+        <button class="demo-btn" style="margin-top: 6px; border-color: #6366f1; color: #6366f1;" @click="fillAdminDemo">
+          🛠️ Admin demo hisob
         </button>
 
         <p class="switch-link">
@@ -100,6 +110,12 @@ function fillDemo() {
   showToast("Demo ma'lumotlar to'ldirildi", 'info')
 }
 
+function fillAdminDemo() {
+  form.email = 'admin@test.com'
+  form.password = 'adminpassword'
+  showToast("Admin demo ma'lumotlar to'ldirildi", 'info')
+}
+
 async function doSignin() {
   if (!form.email || !form.password) {
     showToast('Email va parolni kiriting', 'error')
@@ -121,7 +137,10 @@ async function doSignin() {
     if (result.success) {
       showToast('Xush kelibsiz, ' + result.data.data.user.name + '! 🛒', 'success')
       localStorage.setItem('token', result.data.data.token)
-      setTimeout(() => router.push('/home'), 1200)
+      localStorage.setItem('user', JSON.stringify(result.data.data.user))
+      // Admin bo'lsa admin panelga, aks holda home sahifasiga yo'naltir
+      const role = result.data.data.user.role
+      setTimeout(() => router.push(role === 'admin' ? '/admin/dashboard' : '/home'), 1200)
     } else {
       showToast(result.data?.message || 'Email yoki parol xato', 'error')
     }
@@ -164,6 +183,7 @@ async function forgotPassword() {
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  position: relative;
 }
 .wrap { width: 100%; max-width: 420px; }
 
@@ -255,8 +275,35 @@ async function forgotPassword() {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 13px; color: #555; cursor: pointer;
+  transition: all 0.2s;
 }
 .demo-btn:hover { background: #eaecef; }
+
+.auth-header {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+.admin-header-link {
+  font-size: 12px;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 30px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-header-link:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
 
 .switch-link {
   text-align: center;

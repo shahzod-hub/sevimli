@@ -15,7 +15,7 @@ const filteredProducts = computed(() => {
   return products.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.value.toLowerCase()) ||
                         p.description.toLowerCase().includes(search.value.toLowerCase());
-    const matchCat = !category.value || p.category === category.value;
+    const matchCat = !category.value || (p.category && p.category.toLowerCase() === category.value.toLowerCase());
     return matchSearch && matchCat;
   });
 });

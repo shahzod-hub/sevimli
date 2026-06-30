@@ -47,12 +47,12 @@ const placeOrder = () => {
 
         <div class="field">
           <label>Telefon raqam *</label>
-          <input v-model="form.phone" placeholder="+998 90 123 45 67" type="tel" />
+          <input v-model="form.phone" placeholder="+998 99 999 99 99" type="tel" />
         </div>
 
         <div class="field">
           <label>Yetkazib berish manzili *</label>
-          <textarea v-model="form.address" placeholder="Toshkent, Chilonzor tumani..." rows="3"></textarea>
+          <textarea v-model="form.address" placeholder="Sho'rchi tumani ..." rows="3"></textarea>
         </div>
 
         <div class="field">
@@ -61,10 +61,6 @@ const placeOrder = () => {
             <label :class="{ selected: form.payment === 'cash' }">
               <input type="radio" v-model="form.payment" value="cash" />
               💵 Naqd pul
-            </label>
-            <label :class="{ selected: form.payment === 'card' }">
-              <input type="radio" v-model="form.payment" value="card" />
-              💳 Karta
             </label>
             <label :class="{ selected: form.payment === 'click' }">
               <input type="radio" v-model="form.payment" value="click" />

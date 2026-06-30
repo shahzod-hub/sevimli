@@ -4,6 +4,7 @@ import { useCartStore } from "../stores/cartStore";
 import { useRouter } from "vue-router";
 import { getCart, updateCartItem, removeFromCart, clearCart } from "../api/mockCart";
 
+
 const cart = useCartStore();
 const router = useRouter();
 

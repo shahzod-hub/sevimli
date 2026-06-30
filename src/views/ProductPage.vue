@@ -7,12 +7,14 @@ import products from "../data/products.js";
 
 const route = useRoute();
 const router = useRouter();
+const props = defineProps({ product: Object });
 const cart = useCartStore();
 const favorite = useFavoriteStore();
 const showToast = inject("showToast");
 
 const product = computed(() =>
-  products.find(p => p.id === Number(route.params.id))
+  // prefer prop (static route with props), otherwise find by route param id
+  props.product ?? products.find(p => p.id === Number(route.params.id))
 );
 
 const related = computed(() =>
