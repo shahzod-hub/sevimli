@@ -25,8 +25,7 @@ const filteredProducts = computed(() => {
   <HeroSection />
 
   <DiscountBanner />
-
-  <div class="container">
+<div id="products" class="container">
     <SearchBar v-model="search" />
     <CategoryFilter v-model="category" />
 

@@ -2,7 +2,7 @@
 import { onMounted } from "vue";
 import { useCartStore } from "../stores/cartStore";
 import { useRouter } from "vue-router";
-import { getCart, updateCartItem, removeFromCart, clearCart } from "../api/mockCart";
+import { getCart, updateCartItem, removeFromCart } from "../api/mockCart";
 
 
 const cart = useCartStore();
@@ -13,35 +13,35 @@ onMounted(async () => {
   if (!user.id) return;
 
   const result = await getCart(user.id);
-  if (result.success && result.data.length) {
-    cart.setItems(result.data);
+  if (result.success && result.data.length > 0) {
+    cart.mergeItems(result.data);
   }
 });
 
 const handleDecrease = async (item) => {
+  const cartId = item.cartItemId || item.id;
   if (item.quantity <= 1) {
-    await removeFromCart(item.cartItemId);
     cart.removeFromCart(item.id);
+    await removeFromCart(cartId);
   } else {
-    await updateCartItem(item.cartItemId, item.quantity - 1);
     cart.decreaseQuantity(item.id);
+    await updateCartItem(cartId, item.quantity - 1);
   }
 };
-
 const handleIncrease = async (item) => {
-  await updateCartItem(item.cartItemId, item.quantity + 1);
+  const cartId = item.cartItemId || item.id;
   cart.increaseQuantity(item.id);
+  await updateCartItem(cartId, item.quantity + 1);
 };
 
 const handleRemove = async (item) => {
-  await removeFromCart(item.cartItemId);
+  const cartId = item.cartItemId || item.id;
   cart.removeFromCart(item.id);
+  await removeFromCart(cartId);
 };
 
 const handleClear = async () => {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  if (user.id) await clearCart(user.id);
-  cart.clearCart();
+  await cart.clearCart();
 };
 </script>
 

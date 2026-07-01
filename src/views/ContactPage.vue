@@ -1,18 +1,61 @@
 <script setup>
-import { ref, inject } from "vue";
 
+import { ref, inject } from "vue";
+const CONTACTS_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/sevimli";
 const showToast = inject("showToast");
+
+const contacts = [
+  { icon: "📍", label: "Manzil", value: "Surxondaryo, Sho'rchi tumani, Osiyo to'yxona ro'parasi" },
+  { icon: "📞", label: "Telefon", value: "+998 91 717 41 10" },
+  { icon: "✉️", label: "Email", value: "info@sevimlimarket.uz" },
+  { icon: "💬", label: "Telegram", value: "@sevimlimarket_uz" },
+];
 
 const form = ref({ name: "", email: "", phone: "", subject: "", message: "" });
 const sent = ref(false);
 
-const submit = () => {
+const resetForm = () => {
+  form.value = { name: "", email: "", phone: "", subject: "", message: "" };
+};
+
+const sendMessage = async () => {
   if (!form.value.name || !form.value.email || !form.value.message) {
-    showToast?.("Iltimos, barcha maydonlarni to'ldiring!", "error");
+    showToast?.("Iltimos, ism, email va xabarni to'ldiring!", "error");
     return;
   }
-  sent.value = true;
-  showToast?.("Xabaringiz yuborildi! Tez orada javob beramiz.");
+
+  try {
+    const res = await fetch(CONTACTS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: form.value.name,
+        email: form.value.email,
+        phone: form.value.phone,
+        subject: form.value.subject,
+        message: form.value.message,
+        createdAt: new Date().toISOString(),
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Xabar yuborilmadi");
+    }
+
+    sent.value = true;
+    resetForm();
+    showToast?.("Xabaringiz yuborildi!", "success");
+  } catch (error) {
+    console.error(error);
+    showToast?.("Xabar yuborishda xatolik bor", "error");
+  }
+};
+
+const startNewMessage = () => {
+  sent.value = false;
+  resetForm();
 };
 </script>
 
@@ -56,18 +99,18 @@ const submit = () => {
           <div class="check">✅</div>
           <h3>Xabar yuborildi!</h3>
           <p>Tez orada siz bilan bog'lanamiz.</p>
-          <button @click="sent = false; form = { name:'', email:'', phone:'', subject:'', message:'' }">
+          <button @click="startNewMessage()">
             Yana yozish
           </button>
         </div>
 
-        <form v-else @submit.prevent="submit">
+        <form v-else @submit.prevent="sendMessage">
           <h2>Xabar yuborish</h2>
 
           <div class="row">
             <div class="field">
               <label>Ism *</label>
-              <input v-model="form.name" placeholder="Sardor" />
+              <input v-model="form.name" type="text" placeholder="Sardor" />
             </div>
             <div class="field">
               <label>Email *</label>
@@ -78,17 +121,17 @@ const submit = () => {
           <div class="row">
             <div class="field">
               <label>Telefon</label>
-              <input v-model="form.phone" placeholder="+998 90 ..." />
+              <input v-model="form.phone" type="tel" placeholder="+998 90 ..." />
             </div>
             <div class="field">
               <label>Mavzu</label>
-              <input v-model="form.subject" placeholder="Buyurtma haqida..." />
+              <input v-model="form.subject" type="text" placeholder="Buyurtma haqida..." />
             </div>
           </div>
 
           <div class="field">
             <label>Xabar *</label>
-            <textarea v-model="form.message" rows="5" placeholder="Xabaringizni yozing..."></textarea>
+            <textarea v-model="form.message" rows="5" type="text" placeholder="Xabaringizni yozing..."></textarea>
           </div>
 
           <button type="submit" class="submit-btn">📤 Yuborish</button>
@@ -98,22 +141,43 @@ const submit = () => {
   </div>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      contacts: [
-        { icon: "📍", label: "Manzil", value: "Surxondaryo, Sho'rchi tumani, Osiyo to'yxona ro'parasi" },
-        { icon: "📞", label: "Telefon", value: "+998 91 717 41 10" },
-        { icon: "✉️", label: "Email", value: "info@sevimlimarket.uz" },
-        { icon: "💬", label: "Telegram", value: "@sevimlimarket_uz" },
-      ]
-    };
-  }
-};
-</script>
-
 <style scoped>
+.contact-form {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+  margin-top: 24px;
+}
+
+.contact-form input,
+.contact-form textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  background: white;
+  color: #1a202c;
+}
+
+.contact-form input:focus,
+.contact-form textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.contact-form button {
+  padding: 14px 18px;
+  border: none;
+  border-radius: 12px;
+  background: #2563eb;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
 .page { max-width: 1100px; margin: auto; padding: 60px 5%; }
 
 .header { text-align: center; margin-bottom: 60px; }

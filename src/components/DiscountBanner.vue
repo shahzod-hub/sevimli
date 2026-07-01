@@ -1,4 +1,10 @@
 <script setup>
+const scrollToProducts = () => {
+  const productsSection = document.getElementById("products");
+  if (productsSection) {
+    productsSection.scrollIntoView({ behavior: "smooth" });
+  }
+};
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 
@@ -55,7 +61,9 @@ const goToProductsList = () => router.push('/home');
           </div>
         </div>
 </div>
-        <button class="btn" @click="goToProductsList">Xarid qilish →</button>
+       <button class="btn" @click="scrollToProducts">
+  Xarid qilish →
+</button>
       
 
       <div class="right">

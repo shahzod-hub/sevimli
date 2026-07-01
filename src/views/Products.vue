@@ -5,7 +5,7 @@ import defaultProducts from "../data/products.js";
 const showToast = inject("showToast", () => {});
 
 // MockAPI URL
-const MOCKAPI_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/products";
+const MOCKAPI_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/cart";
 
 // State variables
 const products = ref([]);
@@ -36,7 +36,7 @@ const form = ref({
 });
 
 // Categories list for filtering/selecting
-const categories = ["Mevalar", "Sabzavotlar", "Sut mahsulotlari", "Go'shtlar", "Shirinliklar", "Ichimliklar"];
+const categories = ["Mevalar", "Sabzavotlar", "Sut mahsulotlari", "Goshtlar", "Shirinliklar", "Ichimliklar"];
 
 const fetchProducts = async () => {
   loading.value = true;
