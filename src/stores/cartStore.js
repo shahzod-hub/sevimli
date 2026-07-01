@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-  import { addToCart as addCartApi,getCart } from "../api/mockCart";
+
+
 export const useCartStore = defineStore("cart", {
   state: () => ({
     items: JSON.parse(localStorage.getItem("cart")) || []
@@ -19,13 +20,33 @@ export const useCartStore = defineStore("cart", {
     },
 
     setItems(items) {
-      this.items = items;
+      this.items = items.map(item => ({
+        ...item,
+        cartItemId: item.cartItemId || `local_${item.id}`,
+      }));
       this.saveToLocalStorage();
     },
 
-async addToCart(product) {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+    mergeItems(items) {
+      const remoteItems = items.map(item => ({
+        ...item,
+        cartItemId: item.cartItemId || `local_${item.id}`,
+      }));
 
+      const merged = [...remoteItems];
+      const remoteIds = new Set(remoteItems.map(item => item.id));
+
+      this.items.forEach((localItem) => {
+        if (!remoteIds.has(localItem.id)) {
+          merged.push(localItem);
+        }
+      });
+
+      this.items = merged;
+      this.saveToLocalStorage();
+    },
+
+addToCart(product) {
   const existingItem = this.items.find(item => item.id === product.id);
 
   if (existingItem) {
@@ -33,15 +54,12 @@ async addToCart(product) {
   } else {
     this.items.push({
       ...product,
-      quantity: 1
+      quantity: 1,
+      cartItemId: `local_${product.id}`,
     });
   }
 
   this.saveToLocalStorage();
-
-  if (user.id) {
-    await addCartApi(user.id, product);
-  }
 },
 
     increaseQuantity(id) {
@@ -68,9 +86,15 @@ async addToCart(product) {
       this.saveToLocalStorage();
     },
 
-    clearCart() {
+    // ENDI ASYNC, VA MOCKAPI'NI HAM TOZALAYDI
+    async clearCart() {
       this.items = [];
       this.saveToLocalStorage();
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user.id) {
+        await clearCartApi(user.id);
+      }
     }
   }
 });

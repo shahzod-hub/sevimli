@@ -1,3 +1,4 @@
+
 import { createRouter, createWebHistory, RouterView } from "vue-router";
 
 import HomePage from "../views/HomePage.vue";
@@ -13,14 +14,9 @@ import SignUpPage from "./pages/SignUpPage.vue";
 import products from "../data/products";
 
 
-import Dashboard from "../views/Dashboard.vue";
+
 import Products from "../views/Products.vue";
-import AddProduct from "../views/admin/AddProduct.vue";
-import EditProduct from "../views/admin/EditProduct.vue";
-import Categories from "../views/admin/Categories.vue";
-import Orders from "../views/admin/Orders.vue";
-import Users from "../views/admin/Users.vue";
-import Settings from "../views/admin/Settings.vue";
+
 
 const router = createRouter({
   history: createWebHistory(),
@@ -42,22 +38,7 @@ const router = createRouter({
       component: ProductPage,
     },
 
-    {
-      path: "/admin",
-      component: RouterView,
-      meta: { requiresAdmin: true },   
-      redirect: "/admin/dashboard",
-      children: [
-        { path: "dashboard", name: "admin-dashboard", component: Dashboard },
-        { path: "products", name: "admin-products", component: Products },
-        { path: "products/add", name: "admin-products-add", component: AddProduct },
-        { path: "products/edit/:id", name: "admin-products-edit", component: EditProduct },
-        { path: "categories", name: "admin-categories", component: Categories },
-        { path: "orders", name: "admin-orders", component: Orders },
-        { path: "users", name: "admin-users", component: Users },
-        { path: "settings", name: "admin-settings", component: Settings },
-      ],
-    },
+  
 
     // ✅ 404 — eng oxirida
     { path: "/:pathMatch(.*)*", name: "not-found", component: NotFoundPage },
@@ -68,9 +49,11 @@ const router = createRouter({
   },
 });
 
-// ✅ Admin guard vaqtincha o'chirilgan (test rejimi)
+
 router.beforeEach((to, from, next) => {
   next();
 });
 
 export default router;
+
+

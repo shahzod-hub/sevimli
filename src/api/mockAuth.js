@@ -1,5 +1,5 @@
-const BASE_URL = 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli'
-const USERS_ENDPOINT = `${BASE_URL}/sevimli`
+
+const USERS_ENDPOINT = 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/sevimli'
 const STORAGE_KEY = 'sevimli_mock_users'
 
 const initialUsers = [
@@ -10,15 +10,7 @@ const initialUsers = [
     phone: '+998901234567',
     password: 'password123',
     role: 'customer',
-  },
-  {
-    id: '2',
-    name: 'Admin Test',
-    email: 'admin@test.com',
-    phone: '+998907654321',
-    password: 'adminpassword',
-    role: 'admin',
-  },
+  }
 ]
 
 function delay(ms = 900) {
@@ -67,16 +59,15 @@ export async function mockSignin(email, password) {
       console.log('MockAPI unavailable, using localStorage')
     }
 
-    // FAQAT mockapi butunlay ishlamasa (tarmoq xatosi va h.k.) localStorage'ga
-    // qaytamiz. Agar mockapi javob bergan-u, lekin user topilmagan bo'lsa
-    // (bo'sh array qaytgan bo'lsa), buni "bunday user yo'q" deb hisoblaymiz va
-    // local test userlarga (ali@test.com, admin@test.com) qaytib ketmaymiz.
     if (!remoteOk) {
       sevimli = getStoredUsers()
     }
 
-    const user = sevimli.find((u) => u.email === email && u.password === password)
+let user = sevimli.find((u) => u.email === email && u.password === password)
 
+if (!user) {
+  user = getStoredUsers().find((u) => u.email === email && u.password === password)
+}
     if (!user) {
       return {
         success: false,

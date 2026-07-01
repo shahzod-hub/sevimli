@@ -4,8 +4,6 @@ import { useRoute } from "vue-router";
 import Navbar from "./components/Navbar.vue";
 import Footer from "./components/Footer.vue";
 
-import AdminLayout from './components/layout/AdminLayout.vue';
-
 const route = useRoute();
 const toasts = ref([]);
 
@@ -25,17 +23,11 @@ provide("showToast", showToast);
 </script>
 
 <template>
-  <div v-if="isAdminPage" class="admin-wrapper">
-    <AdminLayout>
-      <router-view />
-    </AdminLayout>
-  </div>
-  <div v-else class="public-wrapper">
+  <div class="public-wrapper">
     <Navbar v-if="showNavbar" />
     <router-view />
     <Footer v-if="showFooter" />
   </div>
-
 
   <div class="toast-container">
     <transition-group name="toast">
@@ -51,17 +43,8 @@ provide("showToast", showToast);
   </div>
 </template>
 
-
-
 <style>
 /* Butun loyiha uchun umumiy stillar (margin va paddinglarni tozalash) */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-</style>
-<style>
 * {
   margin: 0;
   padding: 0;

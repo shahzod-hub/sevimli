@@ -9,24 +9,11 @@ const favorite = useFavoriteStore();
 const menuOpen = ref(false);
 
 const route = useRoute();
-const isAdmin = ref(false);
 
-const checkAdminStatus = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    isAdmin.value = user.role === "admin";
-  } catch (e) {
-    isAdmin.value = false;
-  }
-};
 
-onMounted(() => {
-  checkAdminStatus();
-});
 
-watch(() => route.path, () => {
-  checkAdminStatus();
-});
+
+
 </script>
 
 <template>
@@ -39,7 +26,7 @@ watch(() => route.path, () => {
 
       <div class="nav-links" :class="{ open: menuOpen }">
         <router-link to="/home" @click="menuOpen = false">Bosh sahifa</router-link>
-        <router-link v-if="isAdmin" to="/admin/dashboard" @click="menuOpen = false" class="admin-link">🛠️ Admin</router-link>
+
         <router-link to="/about" @click="menuOpen = false">Biz haqimizda</router-link>
         <router-link to="/contact" @click="menuOpen = false">Aloqa</router-link>
       </div>
@@ -117,16 +104,7 @@ watch(() => route.path, () => {
   background: rgba(255,255,255,0.1);
 }
 
-.admin-link {
-  color: #38bdf8 !important;
-  font-weight: 600 !important;
-  background: rgba(56, 189, 248, 0.08) !important;
-  border: 1px solid rgba(56, 189, 248, 0.2);
-}
-.admin-link:hover {
-  background: rgba(56, 189, 248, 0.2) !important;
-  color: white !important;
-}
+
 
 .nav-actions {
   display: flex;

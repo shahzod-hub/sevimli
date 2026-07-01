@@ -2,7 +2,7 @@
 import { ref, inject } from "vue";
 import { useCartStore } from "../stores/cartStore";
 import { useRouter } from "vue-router";
-
+const ORDERS_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/cart";
 const cart = useCartStore();
 const router = useRouter();
 const showToast = inject("showToast");
@@ -13,16 +13,63 @@ const form = ref({
   address: "",
   payment: "cash"
 });
-
 const submitted = ref(false);
 
-const placeOrder = () => {
+const placeOrder = async () => {
   if (!form.value.name || !form.value.phone || !form.value.address) {
     showToast?.("Iltimos, barcha maydonlarni to'ldiring!", "error");
     return;
   }
-  submitted.value = true;
-  cart.clearCart();
+
+  if (!cart.items.length) {
+    showToast?.("Savat bo'sh!", "error");
+    return;
+  }
+
+  try {
+    // Order is processed locally here.
+    // Do not post orders to the cart endpoint, otherwise saved cart items may repopulate the cart.
+    const order = {
+      customerName: form.value.name,
+      customerPhone: form.value.phone,
+      customerAddress: form.value.address,
+      payment: form.value.payment,
+      items: cart.items.map(item => ({
+        productId: item.id,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+        total: item.price * item.quantity,
+      })),
+      totalPrice: cart.totalPrice,
+      status: "new",
+      createdAt: new Date().toISOString(),
+    };
+
+    const res = await fetch(ORDERS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(order),
+    });
+
+    if (!res.ok) {
+      throw new Error("MockAPI ga buyurtma yuborilmadi");
+    }
+
+    await cart.clearCart();
+
+    submitted.value = true;
+    showToast?.("Buyurtma yuborildi", "success");
+  } catch (error) {
+    console.error(error);
+    showToast?.(
+      error instanceof Error ? error.message : "Buyurtma yuborilmadi",
+      "error"
+    );
+  }
 };
 </script>
 
@@ -33,7 +80,7 @@ const placeOrder = () => {
       <div class="check">✅</div>
       <h2>Buyurtma qabul qilindi!</h2>
       <p>Tez orada operator siz bilan bog'lanadi. Rahmat!</p>
-      <button @click="router.push('/')">Bosh sahifaga qaytish</button>
+      <button @click="router.push('/home')">Bosh sahifaga qaytish</button>
     </div>
 
     <div v-else class="layout">

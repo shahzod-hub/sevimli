@@ -3,7 +3,7 @@
     <div class="hero">
       <div class="hero-text">
         <span class="eyebrow">🌿 Biz haqimizda</span>
-        <h1>O'zbekistonning Eng Yaxshi Online Supermarketi</h1>
+        <h1>Surxondaryoning Eng Yaxshi Online Supermarketi</h1>
         <p>
           2020-yildan buyon xizmat ko'rsatib kelayotgan SuperMarket — yangi va
           sifatli mahsulotlarni uyingizga yetkazib beradi.

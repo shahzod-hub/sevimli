@@ -1,11 +1,3 @@
-/**
- * Supermarket Admin — API Service
- * Base URL .env dan olinadi: VITE_API_BASE_URL
- */
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-
-// ─── Token ───────────────────────────────────────────────────────────────────
 
 const getToken = () => localStorage.getItem('access_token');
 const getRefreshToken = () => localStorage.getItem('refresh_token');

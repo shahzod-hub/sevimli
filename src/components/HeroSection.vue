@@ -1,6 +1,14 @@
 <script setup>
 import { useRouter } from "vue-router";
+
 const router = useRouter();
+
+const scrollToProducts = () => {
+  const productsSection = document.getElementById("products");
+  if (productsSection) {
+    productsSection.scrollIntoView({ behavior: "smooth" });
+  }
+};
 </script>
 
 <template>
@@ -22,11 +30,10 @@ const router = useRouter();
           Meva, sabzavot va kundalik mahsulotlarni eng qulay narxlarda xarid qiling.
           Tez yetkazib berish kafolatlanadi!
         </p>
-
         <div class="hero-actions">
-          <button class="btn-primary" @click="router.push('/:pathMatch(.*)*')">
-            🛒 Xarid boshlash
-          </button>
+<button class="btn-primary" @click="scrollToProducts">
+  Xarid boshlash
+</button>
           <button class="btn-secondary" @click="router.push('/about')">
             Biz haqimizda →
           </button>
