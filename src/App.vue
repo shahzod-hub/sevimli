@@ -7,7 +7,7 @@ import Footer from "./components/Footer.vue";
 const route = useRoute();
 const toasts = ref([]);
 
-const showNavbar = computed(() => !["/signin", "/signup"].includes(route.path) && !route.path.startsWith("/admin"));
+const showNavbar = computed(() => !route.path.startsWith("/admin"));
 const showFooter = computed(() => !["/signin", "/signup", "/checkout"].includes(route.path) && !route.path.startsWith("/admin"));
 const isAdminPage = computed(() => route.path.startsWith('/admin'));
 

@@ -1,9 +1,13 @@
 <script setup>
 import { ref, inject } from "vue";
 import { useCartStore } from "../stores/cartStore";
+import { useProductStore } from "../stores/productStore";
 import { useRouter } from "vue-router";
 const ORDERS_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/cart";
+const PRODUCTS_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/cart";
+const ORDERS_STORAGE_KEY = "sevimli_admin_orders";
 const cart = useCartStore();
+const productStore = useProductStore();
 const router = useRouter();
 const showToast = inject("showToast");
 
@@ -14,6 +18,80 @@ const form = ref({
   payment: "cash"
 });
 const submitted = ref(false);
+
+const saveLocalOrder = (order) => {
+  const saved = JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || "[]");
+  const localOrder = {
+    ...order,
+    id: order.id || `order_${Date.now()}`,
+  };
+  localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify([localOrder, ...saved]));
+  return localOrder;
+};
+
+const toProductPayload = (product, stock) => ({
+  ...product,
+  title: product.title || product.name,
+  price: Number(product.price || 0),
+  stock: Math.max(0, Number(stock || 0)),
+  rating: Number(product.rating || 4.6),
+  reviews: Number(product.reviews || 0),
+  active: product.active !== false,
+});
+
+const decreaseProductStocks = async (items) => {
+  productStore.ensureLoaded();
+
+  for (const item of items) {
+    const localProduct = productStore.products.find(
+      product => String(product.id) === String(item.id)
+    );
+    let product = localProduct;
+
+    try {
+      const getRes = await fetch(`${PRODUCTS_URL}/${item.id}`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      if (getRes.ok) {
+        const remoteProduct = await getRes.json();
+        if (remoteProduct?.name && !remoteProduct.customerName) {
+          product = remoteProduct;
+        }
+      }
+    } catch {
+      // MockAPI ishlamasa lokal qoldiq yangilanadi.
+    }
+
+    if (!product) continue;
+
+    const currentStock = Number(product.stock ?? 0);
+    if (currentStock < item.quantity) {
+      throw new Error(`${item.name} uchun qoldiq yetarli emas. Omborda: ${currentStock}`);
+    }
+
+    const nextStock = currentStock - item.quantity;
+    const payload = toProductPayload(product, nextStock);
+
+    try {
+      const updateRes = await fetch(`${PRODUCTS_URL}/${product.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(3000),
+      });
+
+      if (updateRes.ok) {
+        const updated = await updateRes.json();
+        productStore.updateProduct(product.id, updated);
+        continue;
+      }
+    } catch {
+      // Lokal yangilash pastda davom etadi.
+    }
+
+    productStore.updateProduct(product.id, payload);
+  }
+};
 
 const placeOrder = async () => {
   if (!form.value.name || !form.value.phone || !form.value.address) {
@@ -47,19 +125,31 @@ const placeOrder = async () => {
       createdAt: new Date().toISOString(),
     };
 
-    const res = await fetch(ORDERS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(order),
-    });
+    await decreaseProductStocks(cart.items);
 
-    if (!res.ok) {
-      throw new Error("MockAPI ga buyurtma yuborilmadi");
+    const localOrder = saveLocalOrder(order);
+
+    try {
+      const res = await fetch(ORDERS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(localOrder),
+        signal: AbortSignal.timeout(3000),
+      });
+
+      if (!res.ok) {
+        console.warn("MockAPI ga buyurtma yuborilmadi");
+      }
+    } catch (remoteError) {
+      console.warn("Buyurtma lokal saqlandi, MockAPI ishlamadi", remoteError);
     }
 
-    await cart.clearCart();
+    const clearResult = await cart.clearCart();
+    if (!clearResult?.success) {
+      console.warn("Cart clear failed after order, but order was submitted", clearResult);
+    }
 
     submitted.value = true;
     showToast?.("Buyurtma yuborildi", "success");
@@ -71,6 +161,8 @@ const placeOrder = async () => {
     );
   }
 };
+  
+
 </script>
 
 <template>

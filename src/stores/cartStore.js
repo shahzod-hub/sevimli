@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-
+import { clearCart as clearCartApi } from "../api/mockCart";
 
 export const useCartStore = defineStore("cart", {
   state: () => ({
@@ -93,8 +93,10 @@ addToCart(product) {
 
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (user.id) {
-        await clearCartApi(user.id);
+        const result = await clearCartApi(user.id);
+        return result;
       }
+      return { success: true, remoteOk: false };
     }
   }
 });

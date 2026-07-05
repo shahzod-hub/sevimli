@@ -81,10 +81,11 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { mockSignin } from '../../api/mockAuth'
 
 const router = useRouter()
+const route = useRoute()
 
 const form = reactive({ email: '', password: '' })
 const showPass = ref(false)
@@ -130,7 +131,9 @@ async function doSignin() {
   localStorage.setItem('token', result.data.data.token)
   localStorage.setItem('user', JSON.stringify(result.data.data.user))
 
-  router.push('/home')
+  const redirectPath = route.query.redirect
+  const nextPath = redirectPath || (result.data.data.user.role === 'admin' ? '/admin' : '/home')
+  router.push(nextPath)
 } else {
   showToast(result.data?.message || 'Email yoki parol xato', 'error')
 }

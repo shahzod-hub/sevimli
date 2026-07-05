@@ -10,6 +10,14 @@ const initialUsers = [
     phone: '+998901234567',
     password: 'password123',
     role: 'customer',
+  },
+  {
+    id: 'admin-1',
+    name: 'Admin User',
+    email: 'admin@sevimli.uz',
+    phone: '+998901234567',
+    password: 'admin123',
+    role: 'admin',
   }
 ]
 
@@ -59,25 +67,34 @@ export async function mockSignin(email, password) {
       console.log('MockAPI unavailable, using localStorage')
     }
 
+    const localUsers = getStoredUsers()
     if (!remoteOk) {
-      sevimli = getStoredUsers()
+      sevimli = localUsers
     }
 
 let user = sevimli.find((u) => u.email === email && u.password === password)
 
 if (!user) {
-  user = getStoredUsers().find((u) => u.email === email && u.password === password)
+  user = localUsers.find((u) => u.email === email && u.password === password)
 }
-    if (!user) {
-      return {
-        success: false,
-        data: {
-          success: false,
-          message: "Email yoki parol noto'g'ri",
-          error: 'INVALID_CREDENTIALS',
-        },
-      }
-    }
+
+if (!user) {
+  return {
+    success: false,
+    data: {
+      success: false,
+      message: "Email yoki parol noto'g'ri",
+      error: 'INVALID_CREDENTIALS',
+    },
+  }
+}
+
+if (!user.role) {
+  const localUser = localUsers.find((u) => u.email === email)
+  if (localUser?.role) {
+    user.role = localUser.role
+  }
+}
 
     const token = generateToken(email)
 

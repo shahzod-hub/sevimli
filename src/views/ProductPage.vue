@@ -1,24 +1,25 @@
 <script setup>
-import { computed, inject } from "vue";
+import { computed, inject, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useCartStore } from "../stores/cartStore";
 import { useFavoriteStore } from "../stores/favoriteStore";
-import products from "../data/products.js";
+import { useProductStore } from "../stores/productStore";
 
 const route = useRoute();
 const router = useRouter();
 const props = defineProps({ product: Object });
 const cart = useCartStore();
 const favorite = useFavoriteStore();
+const productStore = useProductStore();
 const showToast = inject("showToast");
 
 const product = computed(() =>
   // prefer prop (static route with props), otherwise find by route param id
-  props.product ?? products.find(p => p.id === Number(route.params.id))
+  props.product ?? productStore.activeProducts.find(p => String(p.id) === String(route.params.id))
 );
 
 const related = computed(() =>
-  products.filter(p => p.category === product.value?.category && p.id !== product.value?.id).slice(0, 4)
+  productStore.activeProducts.filter(p => p.category === product.value?.category && p.id !== product.value?.id).slice(0, 4)
 );
 
 const addToCart = () => {
@@ -29,6 +30,10 @@ const addToCart = () => {
 const toggleFav = () => {
   favorite.toggleFavorite(product.value);
 };
+
+onMounted(() => {
+  productStore.ensureLoaded();
+});
 </script>
 
 <template>
