@@ -32,9 +32,22 @@ function generateToken(email) {
 function getStoredUsers() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return initialUsers.slice()
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : initialUsers.slice()
+    let users = []
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        users = parsed
+      }
+    }
+    
+    // Ensure all initialUsers are present in the list
+    initialUsers.forEach(initUser => {
+      if (!users.some(u => u.email === initUser.email)) {
+        users.push(initUser)
+      }
+    })
+    
+    return users
   } catch {
     return initialUsers.slice()
   }
@@ -56,12 +69,15 @@ export async function mockSignin(email, password) {
       const res = await fetch(`${USERS_ENDPOINT}?email=${encodeURIComponent(email)}`, {
         signal: AbortSignal.timeout(5000),
       })
-      if (res.ok) {
+      if (res.status === 200) {
         const remoteUsers = await res.json()
         if (Array.isArray(remoteUsers)) {
           sevimli = remoteUsers
           remoteOk = true
         }
+      } else if (res.status === 404) {
+        sevimli = []
+        remoteOk = true
       }
     } catch (e) {
       console.log('MockAPI unavailable, using localStorage')
@@ -71,11 +87,31 @@ export async function mockSignin(email, password) {
     if (!remoteOk) {
       sevimli = localUsers
     }
-
+console.log("Remote users:", sevimli)
+console.log("Local users:", localUsers)
+console.log("Email:", email)
+console.log("Password:", password)
 let user = sevimli.find((u) => u.email === email && u.password === password)
 
 if (!user) {
   user = localUsers.find((u) => u.email === email && u.password === password)
+  // Agar foydalanuvchi lokal topilsa va MockAPI ishlayotgan bo'lsa, uni MockAPI ga yuklab (seed) qo'yamiz
+  if (user && remoteOk) {
+    try {
+      const createRes = await fetch(USERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user),
+        signal: AbortSignal.timeout(5000),
+      })
+      if (createRes.ok) {
+        const created = await createRes.json()
+        user = created
+      }
+    } catch (e) {
+      console.log('Failed to seed local user to MockAPI:', e)
+    }
+  }
 }
 
 if (!user) {
@@ -154,12 +190,15 @@ export async function mockSignup({ name, phone, email, password }) {
       const res = await fetch(`${USERS_ENDPOINT}?email=${encodeURIComponent(email)}`, {
         signal: AbortSignal.timeout(5000),
       })
-      if (res.ok) {
+      if (res.status === 200) {
         const remoteUsers = await res.json()
         if (Array.isArray(remoteUsers)) {
           sevimli = remoteUsers
           remoteOk = true
         }
+      } else if (res.status === 404) {
+        sevimli = []
+        remoteOk = true
       }
     } catch (e) {
       console.log('MockAPI unavailable, using localStorage')

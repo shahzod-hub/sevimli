@@ -501,8 +501,36 @@ const fetchUsers = async () => {
     const res = await fetch(USERS_URL, { signal: AbortSignal.timeout(3000) })
     if (!res.ok) throw new Error('Foydalanuvchilar yuklanmadi.')
     const data = await res.json()
-    if (Array.isArray(data) && data.length) {
-      users.value = data
+    if (Array.isArray(data)) {
+      const merged = [...data]
+      const remoteEmails = new Set(data.map(u => u.email.toLowerCase()))
+      
+      const defaultUsers = [
+        {
+          id: 'admin-1',
+          name: 'Admin User',
+          email: 'admin@sevimli.uz',
+          phone: '+998901234567',
+          password: 'admin123',
+          role: 'admin',
+        },
+        {
+          id: '1',
+          name: 'Ali Test',
+          email: 'ali@test.com',
+          phone: '+998901234567',
+          password: 'password123',
+          role: 'customer',
+        }
+      ]
+      
+      defaultUsers.forEach(defUser => {
+        if (!remoteEmails.has(defUser.email.toLowerCase())) {
+          merged.push(defUser)
+        }
+      })
+      
+      users.value = merged
       saveUsers()
     }
   } catch (err) {
