@@ -1,13 +1,16 @@
 <script setup>
-import { ref, inject } from "vue";
+import { ref, inject, computed, onMounted } from "vue";
 import { useCartStore } from "../stores/cartStore";
-import products from "../data/products.js";
+import { useProductStore } from "../stores/productStore";
 
 const cart = useCartStore();
+const productStore = useProductStore();
 const showToast = inject("showToast");
 const slider = ref(null);
 
-const topProducts = products.filter(p => p.badge === "Top" || p.badge === "Bestseller" || p.rating >= 4.7);
+const topProducts = computed(() =>
+  productStore.activeProducts.filter(p => p.badge === "Top" || p.badge === "Bestseller" || p.rating >= 4.7)
+);
 
 const scroll = (dir) => {
   slider.value?.scrollBy({ left: dir * 280, behavior: "smooth" });
@@ -17,6 +20,10 @@ const addToCart = (product) => {
   cart.addToCart(product);
   showToast?.(`${product.name} savatga qo'shildi!`);
 };
+
+onMounted(() => {
+  productStore.ensureLoaded();
+});
 </script>
 
 <template>

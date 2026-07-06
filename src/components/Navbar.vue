@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useCartStore } from "../stores/cartStore";
 import { useFavoriteStore } from "../stores/favoriteStore";
@@ -7,8 +7,33 @@ import { useFavoriteStore } from "../stores/favoriteStore";
 const cart = useCartStore();
 const favorite = useFavoriteStore();
 const menuOpen = ref(false);
-
 const route = useRoute();
+
+const currentUser = computed(() => {
+  try {
+    route.path; // make this computed reactive to route changes
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    return {};
+  }
+});
+
+const isLoggedIn = computed(() => {
+  return Boolean(currentUser.value && currentUser.value.id);
+});
+
+const isAdmin = computed(() => {
+  return currentUser.value.role === 'admin';
+});
+
+const showLoginButton = computed(() => {
+  // Always show the login button in the header (but hide on signin/signup pages)
+  return route.path !== '/signin' && route.path !== '/signup';
+});
+
+const showAdminButton = computed(() => {
+  return isAdmin.value;
+});
 
 
 
@@ -32,6 +57,15 @@ const route = useRoute();
       </div>
 
       <div class="nav-actions">
+        <router-link
+          v-if="showLoginButton"
+          to="/signin"
+          class="auth-btn"
+          @click="menuOpen = false"
+        >
+          Kirish
+        </router-link>
+
         <router-link to="/favorites" class="icon-btn">
           ❤️
           <span class="badge" v-if="favorite.favoriteCount > 0">{{ favorite.favoriteCount }}</span>
@@ -129,6 +163,24 @@ const route = useRoute();
 }
 
 .icon-btn:hover { background: rgba(255,255,255,0.15); }
+
+.auth-btn {
+  padding: 0 16px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #ffffff;
+  background: rgba(255,255,255,0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.auth-btn:hover { background: rgba(255,255,255,0.18); }
 
 .cart-btn { background: rgba(56, 189, 248, 0.2); }
 .cart-btn:hover { background: rgba(56, 189, 248, 0.35); }

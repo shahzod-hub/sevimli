@@ -1,23 +1,28 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import HeroSection from "../components/HeroSection.vue";
 import SearchBar from "../components/SearchBar.vue";
 import CategoryFilter from "../components/CategoryFilter.vue";
 import DiscountBanner from "../components/DiscountBanner.vue";
 import ProductSlider from "../components/ProductSlider.vue";
 import ProductCard from "../components/ProductCard.vue";
-import products from "../data/products.js";
+import { useProductStore } from "../stores/productStore";
 
+const productStore = useProductStore();
 const search = ref("");
 const category = ref("");
 
 const filteredProducts = computed(() => {
-  return products.filter(p => {
+  return productStore.activeProducts.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.value.toLowerCase()) ||
                         p.description.toLowerCase().includes(search.value.toLowerCase());
     const matchCat = !category.value || (p.category && p.category.toLowerCase() === category.value.toLowerCase());
     return matchSearch && matchCat;
   });
+});
+
+onMounted(() => {
+  productStore.ensureLoaded();
 });
 </script>
 

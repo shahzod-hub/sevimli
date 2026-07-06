@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from "vue";
+import { inject, onMounted } from "vue";
 import { useCartStore } from "../stores/cartStore";
 import { useRouter } from "vue-router";
 import { getCart, updateCartItem, removeFromCart } from "../api/mockCart";
@@ -7,6 +7,13 @@ import { getCart, updateCartItem, removeFromCart } from "../api/mockCart";
 
 const cart = useCartStore();
 const router = useRouter();
+const showToast = inject("showToast");
+
+const isAuthenticated = () => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const token = localStorage.getItem("token");
+  return Boolean(user.id && token);
+};
 
 onMounted(async () => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -42,6 +49,16 @@ const handleRemove = async (item) => {
 
 const handleClear = async () => {
   await cart.clearCart();
+};
+
+const goToCheckout = () => {
+  if (!isAuthenticated()) {
+    showToast?.("Buyurtma berish uchun avval tizimga kiring", "error");
+    router.push({ path: "/signin", query: { redirect: "/checkout" } });
+    return;
+  }
+
+  router.push("/checkout");
 };
 </script>
 
@@ -105,7 +122,7 @@ const handleClear = async () => {
           <strong>{{ cart.totalPrice.toLocaleString() }} so'm</strong>
         </div>
 
-        <button class="checkout-btn" @click="router.push('/checkout')">
+        <button class="checkout-btn" @click="goToCheckout">
           Buyurtma berish →
         </button>
 
