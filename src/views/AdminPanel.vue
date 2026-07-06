@@ -30,6 +30,7 @@
       <button :class="{ active: activeTab === 'products' }" @click="activeTab = 'products'">Mahsulotlar</button>
       <button :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'">Buyurtmalar</button>
       <button :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">Foydalanuvchilar</button>
+      <button :class="{ active: activeTab === 'settings' }" @click="activeTab = 'settings'">Sozlamalar</button>
     </div>
 
     <div class="panel-body">
@@ -206,6 +207,19 @@
             </table>
           </div>
         </div>
+
+        <div v-else-if="activeTab === 'settings'" class="settings-section">
+          <div class="settings-card">
+            <h3>Sayt sozlamalari</h3>
+            <div class="setting-row">
+              <label class="switch-container">
+                <input type="checkbox" v-model="settings.showDiscountBanner" @change="saveSettings" />
+                <span class="slider"></span>
+              </label>
+              <span class="setting-label">Bosh sahifada chegirmalar bannerini ko'rsatish</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -299,7 +313,10 @@ const USERS_URL = `${API_BASE}/sevimli`
 const ORDERS_STORAGE_KEY = 'sevimli_admin_orders'
 const USERS_STORAGE_KEY = 'sevimli_mock_users'
 
-const activeTab = ref('sevimli')
+const activeTab = ref('products')
+const settings = ref({
+  showDiscountBanner: true,
+})
 const loading = ref(false)
 const error = ref('')
 
@@ -802,8 +819,23 @@ const formatDate = (value) => {
   })
 }
 
+const loadSettings = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('sevimli_settings') || '{}')
+    settings.value.showDiscountBanner = saved.showDiscountBanner !== false
+  } catch (e) {
+    console.error('Error loading settings:', e)
+  }
+}
+
+const saveSettings = () => {
+  localStorage.setItem('sevimli_settings', JSON.stringify(settings.value))
+  showToast('Sozlamalar saqlandi', 'success')
+}
+
 onMounted(() => {
   refreshAll()
+  loadSettings()
 })
 </script>
 
@@ -1097,5 +1129,84 @@ onMounted(() => {
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Sozlamalar bo'limi */
+.settings-section {
+  padding: 30px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.settings-card {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.settings-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 12px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.setting-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* Switch styling */
+.switch-container {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.switch-container input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #2563eb;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
 }
 </style>

@@ -11,6 +11,7 @@ import { useProductStore } from "../stores/productStore";
 const productStore = useProductStore();
 const search = ref("");
 const category = ref("");
+const showDiscountBanner = ref(true);
 
 const filteredProducts = computed(() => {
   return productStore.activeProducts.filter(p => {
@@ -23,14 +24,21 @@ const filteredProducts = computed(() => {
 
 onMounted(() => {
   productStore.ensureLoaded();
+  try {
+    const saved = JSON.parse(localStorage.getItem('sevimli_settings') || '{}');
+    showDiscountBanner.value = saved.showDiscountBanner !== false;
+  } catch (e) {
+    showDiscountBanner.value = true;
+  }
 });
 </script>
 
 <template>
   <HeroSection />
 
-  <DiscountBanner />
-<div id="products" class="container">
+  <DiscountBanner v-if="showDiscountBanner" />
+
+  <div id="products" class="container">
     <SearchBar v-model="search" />
     <CategoryFilter v-model="category" />
 
