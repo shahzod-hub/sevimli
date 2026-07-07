@@ -99,6 +99,24 @@ const placeOrder = async () => {
     return;
   }
 
+  const digits = form.value.phone.replace(/\D/g, "");
+  let phoneCode = digits;
+  if (digits.startsWith("998") && digits.length === 12) {
+    phoneCode = digits.slice(3);
+  }
+
+  if (phoneCode.length !== 9) {
+    showToast?.("Telefon raqami 9 xonali bo'lishi kerak! (Masalan: 901234567)", "error");
+    return;
+  }
+
+  const allowedPrefixes = ["90", "91", "92", "93", "94", "95", "97", "98", "99", "50", "33", "88", "20", "77", "78"];
+  const prefix = phoneCode.slice(0, 2);
+  if (!allowedPrefixes.includes(prefix)) {
+    showToast?.("Telefon raqami kodi noto'g'ri! (Faqat 90, 91, 93, 94, 99, 50, 33, 88, 20, 77, 78 kodlari qabul qilinadi)", "error");
+    return;
+  }
+
   if (!cart.items.length) {
     showToast?.("Savat bo'sh!", "error");
     return;
