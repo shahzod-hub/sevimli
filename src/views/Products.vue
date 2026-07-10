@@ -39,15 +39,17 @@ const form = ref({
 const categories = ["Mevalar", "Sabzavotlar", "Sut mahsulotlari", "Goshtlar", "Shirinliklar", "Ichimliklar"];
 
 const fetchProducts = async () => {
-  loading.value = true;
-  error.value = null;
   try {
-    const res = await fetch(MOCKAPI_URL);
-    if (res.status === 404) {
-      throw new Error("MockAPI da 'products' resursi hali yaratilmagan. Iltimos, MockAPI loyihangizda 'products' resursini yarating.");
+    loading.value = true;
+
+    const response = await fetch(MOCKAPI_URL);
+
+    if (!response.ok) {
+      throw new Error(await response.text());
     }
-    if (!res.ok) throw new Error("MockAPI ma'lumotlarini yuklashda xatolik yuz berdi.");
-    products.value = await res.json();
+
+    products.value = await response.json();
+
   } catch (err) {
     console.error(err);
     error.value = err.message;
@@ -154,13 +156,13 @@ const openEditModal = (product) => {
 
 // Save Product (Create or Update)
 const saveProduct = async () => {
-  if (!form.value.name || form.value.price <= 0 || form.value.stock < 0) {
-    showToast("Iltimos, barcha majburiy maydonlarni to'ldiring!", "error");
+  if (!form.value.name || Number(form.value.price) <= 0 || Number(form.value.stock) < 0) {
+    showToast("Barcha maydonlarni to'g'ri to'ldiring!", "error");
     return;
   }
 
   const payload = {
-    name: form.value.name,
+    name: form.value.name.trim(),
     category: form.value.category,
     price: Number(form.value.price),
     stock: Number(form.value.stock),
@@ -171,74 +173,46 @@ const saveProduct = async () => {
   };
 
   try {
+    let response;
+
     if (modalMode.value === "add") {
-      const res = await fetch(MOCKAPI_URL, {
+      response = await fetch(MOCKAPI_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
-        const data = await res.json();
-        products.value.push(data);
-        showToast("Yangi mahsulot qo'shildi! ➕", "success");
-      } else {
-        const localProduct = {
-          ...payload,
-          id: Date.now().toString(),
-        };
-        products.value.push(localProduct);
-        showToast("Mahsulot saqlandi.", "success");
-      }
     } else {
-      const updateRes = await fetch(`${MOCKAPI_URL}/${editingProductId.value}`, {
+      response = await fetch(`${MOCKAPI_URL}/${editingProductId.value}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify(payload)
       });
-
-      if (updateRes.ok) {
-        const data = await updateRes.json();
-        const index = products.value.findIndex(p => p.id === editingProductId.value);
-        if (index !== -1) products.value[index] = data;
-        showToast("Mahsulot ma'lumotlari yangilandi! 💾", "success");
-      } else if (updateRes.status === 404) {
-        const createRes = await fetch(MOCKAPI_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        if (createRes.ok) {
-          const created = await createRes.json();
-          const index = products.value.findIndex(p => p.id === editingProductId.value);
-          if (index !== -1) products.value[index] = created;
-          showToast("Mahsulot yangilandi.", "success");
-        } else {
-          const index = products.value.findIndex(p => p.id === editingProductId.value);
-          if (index !== -1) products.value[index] = payload;
-          showToast("Mahsulot yangilandi.", "success");
-        }
-      } else {
-        const index = products.value.findIndex(p => p.id === editingProductId.value);
-        if (index !== -1) products.value[index] = payload;
-        showToast("Mahsulot yangilandi.", "success");
-      }
     }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      console.log("MockAPI Error:", errorText);
+      throw new Error(errorText || "Ma'lumotlarni saqlashda xatolik yuz berdi.");
+    }
+
+    const savedProduct = await response.json();
+    if (modalMode.value === "add") {
+      products.value.push(savedProduct);
+    } else {
+      const index = products.value.findIndex(p => String(p.id) === String(editingProductId.value));
+      if (index !== -1) products.value[index] = savedProduct;
+    }
+
+    showToast("Saqlandi", "success");
     showModal.value = false;
+    await fetchProducts();
   } catch (err) {
     console.error(err);
-    if (modalMode.value === "add") {
-      const localProduct = {
-        ...payload,
-        id: Date.now().toString(),
-      };
-      products.value.push(localProduct);
-      showToast("Mahsulot saqlandi.", "success");
-    } else {
-      const index = products.value.findIndex(p => p.id === editingProductId.value);
-      if (index !== -1) products.value[index] = payload;
-      showToast("Mahsulot yangilandi.", "success");
-    }
+    showToast(err.message || "Saqlashda xatolik yuz berdi.", "error");
   }
 };
 
