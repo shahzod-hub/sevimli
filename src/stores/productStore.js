@@ -101,6 +101,22 @@ export const useProductStore = defineStore("products", {
       return updated;
     },
 
+    replaceProduct(oldId, payload) {
+      this.ensureLoaded();
+      const index = this.products.findIndex((product) => String(product.id) === String(oldId));
+      if (index === -1) return null;
+
+      const updated = normalizeProduct({
+        ...this.products[index],
+        ...payload,
+        id: payload.id ?? this.products[index].id,
+        title: payload.name || this.products[index].title,
+      });
+      this.products[index] = updated;
+      this.saveProducts();
+      return updated;
+    },
+
     deleteProduct(id) {
       this.ensureLoaded();
       this.products = this.products.filter((product) => String(product.id) !== String(id));

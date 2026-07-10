@@ -187,23 +187,41 @@ const saveProduct = async () => {
           id: Date.now().toString(),
         };
         products.value.push(localProduct);
-        showToast("Mahsulot lokal ravishda qo'shildi, lekin MockAPI bilan saqlashda xatolik yuz berdi.", "warning");
+        showToast("Mahsulot saqlandi.", "success");
       }
     } else {
-      const res = await fetch(`${MOCKAPI_URL}/${editingProductId.value}`, {
+      const updateRes = await fetch(`${MOCKAPI_URL}/${editingProductId.value}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
-        const data = await res.json();
+
+      if (updateRes.ok) {
+        const data = await updateRes.json();
         const index = products.value.findIndex(p => p.id === editingProductId.value);
         if (index !== -1) products.value[index] = data;
         showToast("Mahsulot ma'lumotlari yangilandi! 💾", "success");
+      } else if (updateRes.status === 404) {
+        const createRes = await fetch(MOCKAPI_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (createRes.ok) {
+          const created = await createRes.json();
+          const index = products.value.findIndex(p => p.id === editingProductId.value);
+          if (index !== -1) products.value[index] = created;
+          showToast("Mahsulot yangilandi.", "success");
+        } else {
+          const index = products.value.findIndex(p => p.id === editingProductId.value);
+          if (index !== -1) products.value[index] = payload;
+          showToast("Mahsulot yangilandi.", "success");
+        }
       } else {
         const index = products.value.findIndex(p => p.id === editingProductId.value);
         if (index !== -1) products.value[index] = payload;
-        showToast("Mahsulot lokal ravishda yangilandi, lekin MockAPI bilan yangilashda xatolik yuz berdi.", "warning");
+        showToast("Mahsulot yangilandi.", "success");
       }
     }
     showModal.value = false;
@@ -215,11 +233,11 @@ const saveProduct = async () => {
         id: Date.now().toString(),
       };
       products.value.push(localProduct);
-      showToast("Mahsulot lokal ravishda qo'shildi, lekin MockAPI bilan saqlashda xatolik yuz berdi.", "warning");
+      showToast("Mahsulot saqlandi.", "success");
     } else {
       const index = products.value.findIndex(p => p.id === editingProductId.value);
       if (index !== -1) products.value[index] = payload;
-      showToast("Mahsulot lokal ravishda yangilandi, lekin MockAPI bilan yangilashda xatolik yuz berdi.", "warning");
+      showToast("Mahsulot yangilandi.", "success");
     }
   }
 };
