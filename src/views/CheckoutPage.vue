@@ -3,7 +3,7 @@ import { ref, inject } from "vue";
 import { useCartStore } from "../stores/cartStore";
 import { useProductStore } from "../stores/productStore";
 import { useRouter } from "vue-router";
-const ORDERS_STORAGE_KEY = "sevimli_admin_orders";
+import { ordersApi } from "../api/mockOrders";
 const cart = useCartStore();
 const productStore = useProductStore();
 const router = useRouter();
@@ -110,7 +110,11 @@ const placeOrder = async () => {
 
     await decreaseProductStocks(cart.items);
 
-    saveLocalOrder(order);
+    const result = await ordersApi.saveOrder(order);
+    if (!result.success) {
+      showToast?.("Buyurtma saqlandi, lekin masofaviy serverga yuborilmadi. LocalStorage dan ko'rishingiz mumkin.", "warning");
+    }
+
     const clearResult = await cart.clearCart();
     if (!clearResult?.success) {
       console.warn("Cart clear failed after order, but order was submitted", clearResult);
