@@ -304,6 +304,7 @@
 import { ref, computed, onMounted, inject } from 'vue'
 import { useProductStore } from '../stores/productStore'
 import localProducts from '../data/products'
+import { ordersApi } from '../api/mockOrders'
 
 const showToast = inject('showToast', () => {})
 const API_BASE = 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli'
@@ -474,8 +475,13 @@ const fetchOrders = async () => {
   loading.value = true
   error.value = ''
   try {
-    orders.value = readStorageArray(ORDERS_STORAGE_KEY).map(normalizeOrder)
+    const result = await ordersApi.getOrders()
+    orders.value = result.data.map(normalizeOrder)
+    if (!result.remote) {
+      console.warn('Using local orders fallback')
+    }
   } catch (err) {
+    orders.value = readStorageArray(ORDERS_STORAGE_KEY).map(normalizeOrder)
     if (!orders.value.length) error.value = err.message
   } finally {
     loading.value = false
@@ -645,9 +651,15 @@ const deleteProduct = async (id) => {
 
 const updateOrderStatus = async (order, status) => {
   try {
-    order.status = status
-    saveOrders()
-    showToast('Buyurtma holati yangilandi.', 'success')
+    const result = await ordersApi.updateOrderStatus(order.id, status)
+    if (result.success) {
+      order.status = result.data.status
+      showToast('Buyurtma holati yangilandi.', 'success')
+    } else {
+      order.status = status
+      saveOrders()
+      showToast('Buyurtma holati lokalga yangilandi.', 'success')
+    }
   } catch (err) {
     showToast(err.message, 'error')
   }
@@ -656,8 +668,14 @@ const updateOrderStatus = async (order, status) => {
 const deleteOrder = async (id) => {
   if (!confirm('Buyurtmani oʻchirishni tasdiqlaysizmi?')) return
   try {
+    const result = await ordersApi.deleteOrder(id)
+    if (!result.success) {
+      orders.value = orders.value.filter((order) => order.id !== id)
+      saveOrders()
+      showToast("Buyurtma lokalga o'chirildi.", 'success')
+      return
+    }
     orders.value = orders.value.filter((order) => order.id !== id)
-    saveOrders()
     showToast("Buyurtma o'chirildi.", 'success')
   } catch (err) {
     showToast(err.message, 'error')
