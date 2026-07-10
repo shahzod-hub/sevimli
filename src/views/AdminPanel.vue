@@ -645,7 +645,11 @@ const openEditProductModal = (product) => {
     unit: product.unit || 'dona',
     image: product.image || '',
     description: product.description || '',
+    barcode: product.barcode || '',
     active: product.active !== false,
+    badge: product.badge || '',
+    rating: product.rating || 4.6,
+    reviews: product.reviews || 0,
   }
   showModal.value = true
 }
@@ -655,17 +659,24 @@ const saveProduct = async () => {
     showToast('Iltimos, mahsulot nomi va narxini kiriting.', 'error')
     return
   }
+
   try {
     const payload = {
       ...productForm.value,
       price: Number(productForm.value.price),
       stock: Number(productForm.value.stock),
+      rating: Number(productForm.value.rating || 4.6),
+      reviews: Number(productForm.value.reviews || 0),
+      active: productForm.value.active !== false,
     }
+
+    const normalizedPayload = normalizeProductPayload(payload)
+
     if (modalMode.value === 'add') {
       const res = await fetch(PRODUCTS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizeProductPayload(payload)),
+        body: JSON.stringify(normalizedPayload),
       })
       if (!res.ok) throw new Error("Mahsulotni MockAPI'ga qo'shib bo'lmadi.")
       const created = await res.json()
@@ -675,41 +686,17 @@ const saveProduct = async () => {
       const res = await fetch(`${PRODUCTS_URL}/${editingProductId.value}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizeProductPayload(payload)),
+        body: JSON.stringify(normalizedPayload),
       })
       if (!res.ok) throw new Error("Mahsulotni MockAPI'da yangilab bo'lmadi.")
       const updated = await res.json()
       productStore.updateProduct(editingProductId.value, updated)
       showToast('Mahsulot yangilandi.', 'success')
     }
-    showModal.value = false
-    return
-    let res
-    if (modalMode.value === 'add') {
-      res = await fetch(PRODUCTS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error('Mahsulot qo‘shishda xatolik yuz berdi.')
-      const created = await res.json()
-      products.value.unshift(created)
-      showToast('Mahsulot qo‘shildi.', 'success')
-    } else {
-      res = await fetch(`${PRODUCTS_URL}/${editingProductId.value}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error('Mahsulotni yangilashda xatolik yuz berdi.')
-      const updated = await res.json()
-      const index = products.value.findIndex((item) => item.id === editingProductId.value)
-      if (index !== -1) products.value[index] = updated
-      showToast('Mahsulot yangilandi.', 'success')
-    }
+
     showModal.value = false
   } catch (err) {
-    showToast(err.message, 'error')
+    showToast(err.message || 'Mahsulotni saqlashda xatolik.', 'error')
   }
 }
 
