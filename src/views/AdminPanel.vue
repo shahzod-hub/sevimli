@@ -565,8 +565,31 @@ const importProductsFromLocal = async () => {
   importLoading.value = true
 
   try {
+    // 1. MockAPI'dagi mavjud mahsulotlarni olamiz (takrorlanishning oldini olish uchun)
+    let existingNames = new Set()
+    try {
+      const getRes = await fetch(PRODUCTS_URL, { signal: AbortSignal.timeout(3000) })
+      if (getRes.ok) {
+        const getProducts = await getRes.json()
+        if (Array.isArray(getProducts)) {
+          getProducts.forEach(p => {
+            if (p.name) {
+              existingNames.add(p.name.trim().toLowerCase())
+            }
+          })
+        }
+      }
+    } catch (e) {
+      console.log('Fetch existing products failed, proceeding with full import')
+    }
+
     let createdCount = 0
     for (const item of localProducts) {
+      // Agar mahsulot nomi allaqachon MockAPI'da bo'lsa, uni qayta import qilmaymiz
+      if (existingNames.has(item.name.trim().toLowerCase())) {
+        continue
+      }
+
       const payload = normalizeProductPayload(item)
       const res = await fetch(PRODUCTS_URL, {
         method: 'POST',
@@ -579,7 +602,15 @@ const importProductsFromLocal = async () => {
         createdCount += 1
       }
     }
-    showToast(`${createdCount} ta mahsulot import qilindi.`, 'success')
+
+    if (createdCount > 0) {
+      showToast(`${createdCount} ta mahsulot import qilindi. Sahifa yangilanmoqda...`, 'success')
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+    } else {
+      showToast("Barcha mahsulotlar allaqachon import qilingan!", 'info')
+    }
   } catch (err) {
     showToast(err.message || 'Mahsulot importida xatolik.', 'error')
   } finally {
