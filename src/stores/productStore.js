@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import defaultProducts from "../data/products.js";
 
 const STORAGE_KEY = "sevimli_products";
+let storageSyncInitialized = false;
 
 const normalizeProduct = (product, index = 0) => ({
   id: product.id ?? Date.now() + index,
@@ -139,6 +140,17 @@ export const useProductStore = defineStore("products", {
       this.products = defaultProducts.map(normalizeProduct);
       this.loaded = true;
       this.saveProducts();
+    },
+
+    initStorageSync() {
+      if (storageSyncInitialized || typeof window === 'undefined') return;
+      storageSyncInitialized = true;
+
+      window.addEventListener('storage', (event) => {
+        if (event.key !== STORAGE_KEY) return;
+        this.products = readProducts();
+        this.loaded = true;
+      });
     },
   },
 });

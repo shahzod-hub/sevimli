@@ -1,14 +1,13 @@
 <script setup>
 import { ref, onMounted, computed, inject } from 'vue';
+import { useProductStore } from '../stores/productStore';
 import defaultProducts from "../data/products.js";
 
 const showToast = inject("showToast", () => {});
-
-// MockAPI URL
-const MOCKAPI_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/products";
+const productStore = useProductStore();
 
 // State variables
-const products = ref([]);
+const products = computed(() => productStore.products);
 const loading = ref(true);
 const error = ref(null);
 const search = ref("");
@@ -39,64 +38,40 @@ const form = ref({
 const categories = ["Mevalar", "Sabzavotlar", "Sut mahsulotlari", "Goshtlar", "Shirinliklar", "Ichimliklar"];
 
 const fetchProducts = async () => {
-  try {
-    loading.value = true;
-
-    const response = await fetch(MOCKAPI_URL);
-
-    if (!response.ok) {
-      throw new Error(await response.text());
-    }
-
-    products.value = await response.json();
-
-  } catch (err) {
-    console.error(err);
-    error.value = err.message;
-  } finally {
-    loading.value = false;
-  }
+  loading.value = false;
+  error.value = null;
+  productStore.ensureLoaded();
+  productStore.initStorageSync();
 };
 
 // Seed Products logic
 const seedProducts = async () => {
-  if (!confirm("Boshlang'ich mahsulotlar to'plamini (15 ta mahsulot) MockAPI ga yuklamoqchimisiz?")) return;
+  if (!confirm("Boshlang'ich mahsulotlar to'plamini (15 ta mahsulot) lokal saqlashga yuklamoqchimisiz?")) return;
   seeding.value = true;
   seedProgress.value = 0;
   
-  // Pick first 15 products to seed
   const itemsToSeed = defaultProducts.slice(0, 15);
   seedTotal.value = itemsToSeed.length;
 
   try {
     for (let i = 0; i < itemsToSeed.length; i++) {
       const p = itemsToSeed[i];
-      // Adapt local products data structure
       const newProduct = {
         name: p.name || p.title,
         category: p.category || "Mevalar",
         price: Number(p.price || 0),
-        stock: Number(p.stock || Math.floor(Math.random() * 100) + 10), // Random stock if empty
+        stock: Number(p.stock ?? Math.floor(Math.random() * 100) + 10),
         barcode: p.barcode || "478" + Math.floor(Math.random() * 1000000000),
         unit: p.unit || "kg",
         image: p.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=300&fit=crop",
         description: p.description || ""
       };
-
-      const res = await fetch(MOCKAPI_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newProduct)
-      });
-
-      if (!res.ok) throw new Error("Mahsulotni yuklashda API xatolik berdi.");
+      productStore.createProduct(newProduct);
       seedProgress.value = i + 1;
-      // Small delay to avoid API rate limits
       await new Promise(r => setTimeout(r, 150));
     }
 
     showToast("Mahsulotlar muvaffaqiyatli import qilindi! 🎉", "success");
-    await fetchProducts();
   } catch (err) {
     console.error(err);
     showToast("Import qilishda xatolik yuz berdi: " + err.message, "error");
@@ -109,15 +84,11 @@ const seedProducts = async () => {
 const handleDelete = async (id) => {
   if (!confirm("Haqiqatan ham ushbu mahsulotni o'chirmoqchimisiz?")) return;
   try {
-    const res = await fetch(`${MOCKAPI_URL}/${id}`, {
-      method: "DELETE"
-    });
-    if (!res.ok) throw new Error("Mahsulotni o'chirishda xatolik yuz berdi.");
-    products.value = products.value.filter(p => p.id !== id);
+    productStore.deleteProduct(id);
     showToast("Mahsulot o'chirildi! 🗑️", "success");
   } catch (err) {
     console.error(err);
-    showToast(err.message, "error");
+    showToast(err.message || "Mahsulotni o'chirishda xatolik bor", "error");
   }
 };
 
@@ -176,40 +147,16 @@ const saveProduct = async () => {
     let response;
 
     if (modalMode.value === "add") {
-      response = await fetch(MOCKAPI_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
+      productStore.createProduct(payload);
     } else {
-      response = await fetch(`${MOCKAPI_URL}/${editingProductId.value}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      console.log("MockAPI Error:", errorText);
-      throw new Error(errorText || "Ma'lumotlarni saqlashda xatolik yuz berdi.");
-    }
-
-    const savedProduct = await response.json();
-    if (modalMode.value === "add") {
-      products.value.push(savedProduct);
-    } else {
-      const index = products.value.findIndex(p => String(p.id) === String(editingProductId.value));
-      if (index !== -1) products.value[index] = savedProduct;
+      const updated = productStore.updateProduct(editingProductId.value, payload);
+      if (!updated) {
+        productStore.createProduct({ ...payload, id: editingProductId.value });
+      }
     }
 
     showToast("Saqlandi", "success");
     showModal.value = false;
-    await fetchProducts();
   } catch (err) {
     console.error(err);
     showToast(err.message || "Saqlashda xatolik yuz berdi.", "error");

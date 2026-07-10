@@ -3,8 +3,6 @@ import { ref, inject } from "vue";
 import { useCartStore } from "../stores/cartStore";
 import { useProductStore } from "../stores/productStore";
 import { useRouter } from "vue-router";
-const ORDERS_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/orders";
-const PRODUCTS_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/products";
 const ORDERS_STORAGE_KEY = "sevimli_admin_orders";
 const cart = useCartStore();
 const productStore = useProductStore();
@@ -43,24 +41,9 @@ const decreaseProductStocks = async (items) => {
   productStore.ensureLoaded();
 
   for (const item of items) {
-    const localProduct = productStore.products.find(
+    const product = productStore.products.find(
       product => String(product.id) === String(item.id)
     );
-    let product = localProduct;
-
-    try {
-      const getRes = await fetch(`${PRODUCTS_URL}/${item.id}`, {
-        signal: AbortSignal.timeout(3000),
-      });
-      if (getRes.ok) {
-        const remoteProduct = await getRes.json();
-        if (remoteProduct?.name && !remoteProduct.customerName) {
-          product = remoteProduct;
-        }
-      }
-    } catch {
-      // MockAPI ishlamasa lokal qoldiq yangilanadi.
-    }
 
     if (!product) continue;
 
@@ -71,24 +54,6 @@ const decreaseProductStocks = async (items) => {
 
     const nextStock = currentStock - item.quantity;
     const payload = toProductPayload(product, nextStock);
-
-    try {
-      const updateRes = await fetch(`${PRODUCTS_URL}/${product.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(3000),
-      });
-
-      if (updateRes.ok) {
-        const updated = await updateRes.json();
-        productStore.updateProduct(product.id, updated);
-        continue;
-      }
-    } catch {
-      // Lokal yangilash pastda davom etadi.
-    }
-
     productStore.updateProduct(product.id, payload);
   }
 };
@@ -145,25 +110,7 @@ const placeOrder = async () => {
 
     await decreaseProductStocks(cart.items);
 
-    const localOrder = saveLocalOrder(order);
-
-    try {
-      const res = await fetch(ORDERS_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(localOrder),
-        signal: AbortSignal.timeout(3000),
-      });
-
-      if (!res.ok) {
-        console.warn("MockAPI ga buyurtma yuborilmadi");
-      }
-    } catch (remoteError) {
-      console.warn("Buyurtma lokal saqlandi, MockAPI ishlamadi", remoteError);
-    }
-
+    saveLocalOrder(order);
     const clearResult = await cart.clearCart();
     if (!clearResult?.success) {
       console.warn("Cart clear failed after order, but order was submitted", clearResult);

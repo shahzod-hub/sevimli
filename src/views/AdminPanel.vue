@@ -307,8 +307,6 @@ import localProducts from '../data/products'
 
 const showToast = inject('showToast', () => {})
 const API_BASE = 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli'
-const PRODUCTS_URL = `${API_BASE}/products`
-const ORDERS_URL = `${API_BASE}/orders`
 const USERS_URL = `${API_BASE}/sevimli`
 const ORDERS_STORAGE_KEY = 'sevimli_admin_orders'
 const USERS_STORAGE_KEY = 'sevimli_mock_users'
@@ -464,13 +462,7 @@ const fetchProducts = async () => {
   error.value = ''
   try {
     productStore.ensureLoaded()
-    const res = await fetch(PRODUCTS_URL, { signal: AbortSignal.timeout(3000) })
-    if (!res.ok) throw new Error('MockAPI mahsulotlari yuklanmadi.')
-    const data = await res.json()
-    const remoteProducts = Array.isArray(data)
-      ? data.filter((item) => item.name && !item.customerName && !item.customerAddress)
-      : []
-    if (remoteProducts.length) productStore.setProducts(remoteProducts)
+    productStore.initStorageSync()
   } catch (err) {
     if (!products.value.length) error.value = err.message
   } finally {
@@ -481,19 +473,8 @@ const fetchProducts = async () => {
 const fetchOrders = async () => {
   loading.value = true
   error.value = ''
-  orders.value = readStorageArray(ORDERS_STORAGE_KEY).map(normalizeOrder)
   try {
-    const res = await fetch(ORDERS_URL, { signal: AbortSignal.timeout(3000) })
-    if (!res.ok) throw new Error('Buyurtmalar yuklanmadi.')
-    const data = await res.json()
-    const remoteOrders = Array.isArray(data)
-      ? data.filter((item) => item.customerName || item.customerAddress)
-          .map(normalizeOrder)
-      : []
-    if (remoteOrders.length) {
-      orders.value = remoteOrders
-      saveOrders()
-    }
+    orders.value = readStorageArray(ORDERS_STORAGE_KEY).map(normalizeOrder)
   } catch (err) {
     if (!orders.value.length) error.value = err.message
   } finally {
@@ -565,54 +546,16 @@ const importProductsFromLocal = async () => {
   importLoading.value = true
 
   try {
-    // 1. MockAPI'dagi mavjud mahsulotlarni olamiz (takrorlanishning oldini olish uchun)
-    let existingNames = new Set()
-    try {
-      const getRes = await fetch(PRODUCTS_URL, { signal: AbortSignal.timeout(3000) })
-      if (getRes.ok) {
-        const getProducts = await getRes.json()
-        if (Array.isArray(getProducts)) {
-          getProducts.forEach(p => {
-            if (p.name) {
-              existingNames.add(p.name.trim().toLowerCase())
-            }
-          })
-        }
-      }
-    } catch (e) {
-      console.log('Fetch existing products failed, proceeding with full import')
-    }
-
-    let createdCount = 0
-    for (const item of localProducts) {
-      // Agar mahsulot nomi allaqachon MockAPI'da bo'lsa, uni qayta import qilmaymiz
-      if (existingNames.has(item.name.trim().toLowerCase())) {
-        continue
-      }
-
-      const payload = normalizeProductPayload(item)
-      const res = await fetch(PRODUCTS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (res.ok) {
-        const created = await res.json()
-        productStore.createProduct(created)
-        createdCount += 1
-      }
-    }
+    const createdCount = productStore.importDefaultProducts()
 
     if (createdCount > 0) {
-      showToast(`${createdCount} ta mahsulot import qilindi. Sahifa yangilanmoqda...`, 'success')
-      setTimeout(() => {
-        window.location.reload()
-      }, 1500)
+      showToast(`${createdCount} ta mahsulot lokalga import qilindi.`, 'success')
     } else {
-      showToast("Barcha mahsulotlar allaqachon import qilingan!", 'info')
+      showToast('Mahsulotlar allaqachon lokalga import qilingan.', 'info')
     }
   } catch (err) {
-    showToast(err.message || 'Mahsulot importida xatolik.', 'error')
+    showToast('Mahsulotlarni import qilishda xatolik yuz berdi.', 'error')
+    console.error(err)
   } finally {
     importLoading.value = false
   }
@@ -673,49 +616,14 @@ const saveProduct = async () => {
     const normalizedPayload = normalizeProductPayload(payload)
 
     if (modalMode.value === 'add') {
-      const res = await fetch(PRODUCTS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizedPayload),
-      })
-      if (res.ok) {
-        const created = await res.json()
-        productStore.createProduct(created)
-        showToast("Mahsulot qo'shildi.", 'success')
-      } else {
-        productStore.createProduct(normalizedPayload)
-        showToast('Mahsulot saqlandi.', 'success')
-      }
+      productStore.createProduct(normalizedPayload)
+      showToast("Mahsulot qo'shildi.", 'success')
     } else {
-      const updateRes = await fetch(`${PRODUCTS_URL}/${editingProductId.value}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizedPayload),
-      })
-
-      if (updateRes.ok) {
-        const updated = await updateRes.json()
-        productStore.updateProduct(editingProductId.value, updated)
-        showToast('Mahsulot yangilandi.', 'success')
-      } else if (updateRes.status === 404) {
-        const createRes = await fetch(PRODUCTS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(normalizedPayload),
-        })
-
-        if (createRes.ok) {
-          const created = await createRes.json()
-          productStore.replaceProduct(editingProductId.value, created)
-          showToast('Mahsulot yangilandi.', 'success')
-        } else {
-          productStore.updateProduct(editingProductId.value, normalizedPayload)
-          showToast('Mahsulot yangilandi.', 'success')
-        }
-      } else {
-        productStore.updateProduct(editingProductId.value, normalizedPayload)
-        showToast('Mahsulot yangilandi.', 'success')
+      const updated = productStore.updateProduct(editingProductId.value, normalizedPayload)
+      if (!updated) {
+        productStore.createProduct({ ...normalizedPayload, id: editingProductId.value })
       }
+      showToast('Mahsulot yangilandi.', 'success')
     }
 
     showModal.value = false
@@ -728,12 +636,10 @@ const saveProduct = async () => {
 const deleteProduct = async (id) => {
   if (!confirm('Mahsulotni o‘chirishni tasdiqlaysizmi?')) return
   try {
-    const res = await fetch(`${PRODUCTS_URL}/${id}`, { method: 'DELETE' })
-    if (!res.ok) throw new Error("Mahsulotni MockAPI'dan o'chirib bo'lmadi.")
     productStore.deleteProduct(id)
     showToast("Mahsulot o'chirildi.", 'success')
   } catch (err) {
-    showToast(err.message, 'error')
+    showToast(err.message || 'Mahsulotni o‘chirishda xatolik bor.', 'error')
   }
 }
 
@@ -741,15 +647,6 @@ const updateOrderStatus = async (order, status) => {
   try {
     order.status = status
     saveOrders()
-    showToast('Buyurtma holati yangilandi.', 'success')
-    return
-    const res = await fetch(`${ORDERS_URL}/${order.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...order, status }),
-    })
-    if (!res.ok) throw new Error('Buyurtma holatini yangilashda xatolik yuz berdi.')
-    order.status = status
     showToast('Buyurtma holati yangilandi.', 'success')
   } catch (err) {
     showToast(err.message, 'error')
@@ -762,11 +659,6 @@ const deleteOrder = async (id) => {
     orders.value = orders.value.filter((order) => order.id !== id)
     saveOrders()
     showToast("Buyurtma o'chirildi.", 'success')
-    return
-    const res = await fetch(`${ORDERS_URL}/${id}`, { method: 'DELETE' })
-    if (!res.ok) throw new Error('Buyurtmani oʻchirishda xatolik yuz berdi.')
-    orders.value = orders.value.filter((order) => order.id !== id)
-    showToast('Buyurtma o‘chirildi.', 'success')
   } catch (err) {
     showToast(err.message, 'error')
   }
