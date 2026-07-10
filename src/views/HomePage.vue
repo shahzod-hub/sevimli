@@ -24,6 +24,7 @@ const filteredProducts = computed(() => {
 
 onMounted(() => {
   productStore.ensureLoaded();
+  productStore.initStorageSync();
   try {
     const saved = JSON.parse(localStorage.getItem('sevimli_settings') || '{}');
     showDiscountBanner.value = saved.showDiscountBanner !== false;
