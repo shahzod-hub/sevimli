@@ -678,25 +678,42 @@ const saveProduct = async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(normalizedPayload),
       })
-      if (!res.ok) throw new Error("Mahsulotni MockAPI'ga qo'shib bo'lmadi.")
-      const created = await res.json()
-      productStore.createProduct(created)
-      showToast("Mahsulot qo'shildi.", 'success')
+      if (res.ok) {
+        const created = await res.json()
+        productStore.createProduct(created)
+        showToast("Mahsulot qo'shildi.", 'success')
+      } else {
+        productStore.createProduct(normalizedPayload)
+        const errText = await res.text().catch(() => '')
+        showToast(
+          `Mahsulot lokal ravishda qo'shildi, lekin MockAPI bilan saqlashda xatolik yuz berdi. ${errText}`,
+          'warning'
+        )
+      }
     } else {
       const res = await fetch(`${PRODUCTS_URL}/${editingProductId.value}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(normalizedPayload),
       })
-      if (!res.ok) throw new Error("Mahsulotni MockAPI'da yangilab bo'lmadi.")
-      const updated = await res.json()
-      productStore.updateProduct(editingProductId.value, updated)
-      showToast('Mahsulot yangilandi.', 'success')
+      if (res.ok) {
+        const updated = await res.json()
+        productStore.updateProduct(editingProductId.value, updated)
+        showToast('Mahsulot yangilandi.', 'success')
+      } else {
+        productStore.updateProduct(editingProductId.value, normalizedPayload)
+        const errText = await res.text().catch(() => '')
+        showToast(
+          `Mahsulot lokal ravishda yangilandi, lekin MockAPI bilan yangilashda xatolik yuz berdi. ${errText}`,
+          'warning'
+        )
+      }
     }
 
     showModal.value = false
   } catch (err) {
-    showToast(err.message || 'Mahsulotni saqlashda xatolik.', 'error')
+    productStore.updateProduct(editingProductId.value, normalizedPayload)
+    showToast(err.message || 'Mahsulotni saqlashda xatolik.', 'warning')
   }
 }
 
