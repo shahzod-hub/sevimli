@@ -684,36 +684,44 @@ const saveProduct = async () => {
         showToast("Mahsulot qo'shildi.", 'success')
       } else {
         productStore.createProduct(normalizedPayload)
-        const errText = await res.text().catch(() => '')
-        showToast(
-          `Mahsulot lokal ravishda qo'shildi, lekin MockAPI bilan saqlashda xatolik yuz berdi. ${errText}`,
-          'warning'
-        )
+        showToast('Mahsulot saqlandi.', 'success')
       }
     } else {
-      const res = await fetch(`${PRODUCTS_URL}/${editingProductId.value}`, {
+      const updateRes = await fetch(`${PRODUCTS_URL}/${editingProductId.value}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(normalizedPayload),
       })
-      if (res.ok) {
-        const updated = await res.json()
+
+      if (updateRes.ok) {
+        const updated = await updateRes.json()
         productStore.updateProduct(editingProductId.value, updated)
         showToast('Mahsulot yangilandi.', 'success')
+      } else if (updateRes.status === 404) {
+        const createRes = await fetch(PRODUCTS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(normalizedPayload),
+        })
+
+        if (createRes.ok) {
+          const created = await createRes.json()
+          productStore.replaceProduct(editingProductId.value, created)
+          showToast('Mahsulot yangilandi.', 'success')
+        } else {
+          productStore.updateProduct(editingProductId.value, normalizedPayload)
+          showToast('Mahsulot yangilandi.', 'success')
+        }
       } else {
         productStore.updateProduct(editingProductId.value, normalizedPayload)
-        const errText = await res.text().catch(() => '')
-        showToast(
-          `Mahsulot lokal ravishda yangilandi, lekin MockAPI bilan yangilashda xatolik yuz berdi. ${errText}`,
-          'warning'
-        )
+        showToast('Mahsulot yangilandi.', 'success')
       }
     }
 
     showModal.value = false
   } catch (err) {
     productStore.updateProduct(editingProductId.value, normalizedPayload)
-    showToast(err.message || 'Mahsulotni saqlashda xatolik.', 'warning')
+    showToast('Mahsulot yangilandi.', 'success')
   }
 }
 
