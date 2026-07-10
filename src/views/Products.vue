@@ -5,7 +5,7 @@ import defaultProducts from "../data/products.js";
 const showToast = inject("showToast", () => {});
 
 // MockAPI URL
-const MOCKAPI_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/cart";
+const MOCKAPI_URL = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/products";
 
 // State variables
 const products = ref([]);

@@ -307,8 +307,8 @@ import localProducts from '../data/products'
 
 const showToast = inject('showToast', () => {})
 const API_BASE = 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli'
-const PRODUCTS_URL = `${API_BASE}/cart`
-const ORDERS_URL = `${API_BASE}/cart`
+const PRODUCTS_URL = `${API_BASE}/products`
+const ORDERS_URL = `${API_BASE}/orders`
 const USERS_URL = `${API_BASE}/sevimli`
 const ORDERS_STORAGE_KEY = 'sevimli_admin_orders'
 const USERS_STORAGE_KEY = 'sevimli_mock_users'
