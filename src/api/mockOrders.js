@@ -32,8 +32,24 @@ const saveLocalOrders = (orders) => {
 const createLocalOrder = (order) => {
   const normalized = normalizeOrder(order);
   const current = getLocalOrders();
-  saveLocalOrders([normalized, ...current]);
+  const existingIndex = current.findIndex((item) => String(item.id) === String(normalized.id));
+  if (existingIndex >= 0) {
+    current[existingIndex] = normalized;
+    saveLocalOrders(current);
+  } else {
+    saveLocalOrders([normalized, ...current]);
+  }
   return normalized;
+};
+
+const mergeOrders = (remoteOrders, localOrders) => {
+  const map = new Map();
+  [...remoteOrders, ...localOrders].forEach((order) => {
+    const normalized = normalizeOrder(order);
+    map.set(String(normalized.id), normalized);
+  });
+
+  return [...map.values()].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 };
 
 const getRemoteOrders = async () => {
@@ -44,7 +60,7 @@ const getRemoteOrders = async () => {
     if (!res.ok) throw new Error(`Remote orders endpoint responded ${res.status}`);
     const data = await res.json();
     if (!Array.isArray(data)) throw new Error('Remote orders response is not an array');
-    return { success: true, data: data.map(normalizeOrder), remote: true };
+    return { success: true, data: mergeOrders(data, getLocalOrders()), remote: true };
   } catch (error) {
     console.warn('Remote orders unavailable:', error?.message || error);
     return { success: false, data: getLocalOrders(), remote: false };
@@ -61,7 +77,8 @@ const saveOrderRemote = async (order) => {
     });
     if (!res.ok) throw new Error(`Remote save failed ${res.status}`);
     const saved = await res.json();
-    return { success: true, data: normalizeOrder(saved), remote: true };
+    const normalized = createLocalOrder(saved);
+    return { success: true, data: normalized, remote: true };
   } catch (error) {
     console.warn('Remote saveOrder failed:', error?.message || error);
     return { success: false, data: createLocalOrder(order), remote: false };
@@ -78,7 +95,12 @@ const updateRemoteOrderStatus = async (orderId, status) => {
     });
     if (!res.ok) throw new Error(`Remote update failed ${res.status}`);
     const updated = await res.json();
-    return { success: true, data: normalizeOrder(updated), remote: true };
+    const normalized = normalizeOrder(updated);
+    const orders = getLocalOrders().map((order) =>
+      String(order.id) === String(orderId) ? normalized : order
+    );
+    saveLocalOrders(orders.some((order) => String(order.id) === String(orderId)) ? orders : [normalized, ...orders]);
+    return { success: true, data: normalized, remote: true };
   } catch (error) {
     console.warn('Remote update order status failed:', error?.message || error);
     const orders = getLocalOrders();
@@ -97,6 +119,7 @@ const deleteRemoteOrder = async (orderId) => {
       signal: AbortSignal.timeout(ORDER_API_TIMEOUT),
     });
     if (!res.ok) throw new Error(`Remote delete failed ${res.status}`);
+    saveLocalOrders(getLocalOrders().filter((order) => String(order.id) !== String(orderId)));
     return { success: true, remote: true };
   } catch (error) {
     console.warn('Remote delete order failed:', error?.message || error);

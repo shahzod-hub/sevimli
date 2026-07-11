@@ -9,14 +9,22 @@ const cart = useCartStore();
 const router = useRouter();
 const showToast = inject("showToast");
 
+const getUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  } catch {
+    return {};
+  }
+};
+
 const isAuthenticated = () => {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = getUser();
   const token = localStorage.getItem("token");
   return Boolean(user.id && token);
 };
 
 onMounted(async () => {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = getUser();
   if (!user.id) return;
 
   const result = await getCart(user.id);
