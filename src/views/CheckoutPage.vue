@@ -17,16 +17,6 @@ const form = ref({
 });
 const submitted = ref(false);
 
-const saveLocalOrder = (order) => {
-  const saved = JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || "[]");
-  const localOrder = {
-    ...order,
-    id: order.id || `order_${Date.now()}`,
-  };
-  localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify([localOrder, ...saved]));
-  return localOrder;
-};
-
 const toProductPayload = (product, stock) => ({
   ...product,
   title: product.title || product.name,

@@ -1,6 +1,8 @@
 const BASE_URL = 'https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli/cart';
 const CART_API_TIMEOUT = 2000;
 const CART_USER_KEY = 'sevimli_cart_user';
+const CART_STORAGE_KEY = 'cart';
+const CART_CLEARED_AT_KEY = 'sevimli_cart_cleared_at';
 
 const isLocalCartId = (cartItemId) => !cartItemId || String(cartItemId).startsWith('local_');
 const getCartUserId = (userId) => {
@@ -20,8 +22,41 @@ const parseCartItemId = (cartItemId) => {
   return Number.isNaN(numeric) ? NaN : numeric;
 };
 
+const readLocalCart = () => {
+  try {
+    const data = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
+    return Array.isArray(data) ? data : [];
+  } catch {
+    localStorage.setItem(CART_STORAGE_KEY, '[]');
+    return [];
+  }
+};
+
+const writeLocalCart = (items) => {
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+};
+
+const mapCartItem = (item) => ({
+  ...item,
+  id: item.productId ?? item.id,
+  cartItemId: item.cartItemId ?? item.id ?? `local_${item.productId ?? item.id}`,
+  quantity: Number(item.quantity ?? 1),
+});
+
+const isActiveRemoteCartItem = (item) => {
+  if (item.status || item.customerName || item.customerPhone || item.customerAddress) return false;
+
+  const clearedAt = Number(localStorage.getItem(CART_CLEARED_AT_KEY) || 0);
+  if (!clearedAt) return true;
+
+  const createdAt = Date.parse(item.createdAt || item.updatedAt || '');
+  return Number.isFinite(createdAt) && createdAt > clearedAt;
+};
+
 export async function getCart(userId) {
   const cartUserId = getCartUserId(userId);
+  const localCart = readLocalCart().map(mapCartItem);
+
   try {
     const res = await fetch(`${BASE_URL}?userId=${encodeURIComponent(cartUserId)}`, {
       signal: AbortSignal.timeout(CART_API_TIMEOUT),
@@ -29,31 +64,45 @@ export async function getCart(userId) {
     if (res.ok) {
       const data = await res.json();
       const filteredData = Array.isArray(data)
-        ? data.filter((item) => !item.status && !item.customerName && !item.customerPhone && !item.customerAddress)
+        ? data.filter(isActiveRemoteCartItem)
         : [];
-      const mapped = filteredData.map((item) => ({
-        ...item,
-        id: item.productId ?? item.id,
-        cartItemId: item.id ?? item.cartItemId,
-        quantity: item.quantity ?? 1,
-      }));
-      return { success: true, data: mapped };
+      const remoteItems = filteredData.map(mapCartItem);
+      const localIds = new Set(localCart.map((item) => String(item.id)));
+      const merged = [
+        ...localCart,
+        ...remoteItems.filter((item) => !localIds.has(String(item.id))),
+      ];
+
+      writeLocalCart(merged);
+      return { success: true, data: merged, remote: true };
     }
   } catch (e) {
     console.log("MockAPI carts not available or failed, falling back to localStorage");
   }
   
-  // Local fallback
-  const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
-  const mapped = localCart.map(item => ({
-    ...item,
-    cartItemId: item.cartItemId || `local_${item.id}`
-  }));
-  return { success: true, data: mapped };
+  return { success: true, data: localCart, remote: false };
 }
 
-export async function addToCart(userId, product, quantity = 1) {
+export async function addToCart(userId, product, quantity = 1, options = {}) {
+  const { syncLocal = true } = options;
   const cartUserId = getCartUserId(userId);
+  const localCart = readLocalCart();
+  const existingLocal = localCart.find((item) => String(item.id) === String(product.id));
+
+  if (syncLocal) {
+    if (existingLocal) {
+      existingLocal.quantity = Number(existingLocal.quantity || 0) + quantity;
+    } else {
+      localCart.push({
+        ...product,
+        quantity,
+        cartItemId: `local_${product.id}`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    writeLocalCart(localCart);
+  }
+
   try {
     const response = await fetch(BASE_URL, {
       method: "POST",
@@ -69,30 +118,33 @@ export async function addToCart(userId, product, quantity = 1) {
         unit: product.unit,
         price: product.price,
         quantity,
+        createdAt: new Date().toISOString(),
       }),
       signal: AbortSignal.timeout(CART_API_TIMEOUT),
     });
 
-    console.log("POST status:", response.status);
+    if (!response.ok) throw new Error(`MockAPI POST failed ${response.status}`);
 
     const data = await response.json();
-    console.log("POST response:", data);
-
-    return data;
+    return mapCartItem(data);
   } catch (e) {
     console.error("MockAPI POST xatosi:", e);
-    return null;
+    return mapCartItem(
+      existingLocal ||
+      localCart.find((item) => String(item.id) === String(product.id)) ||
+      { ...product, cartItemId: `local_${product.id}`, quantity }
+    );
   }
 }
 
 export async function updateCartItem(cartItemId, quantity) {
-  const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const localCart = readLocalCart();
   const localId = parseCartItemId(cartItemId);
   if (isLocalCartId(cartItemId)) {
     const item = localCart.find(i => i.id === localId || i.cartItemId === cartItemId);
     if (item) {
       item.quantity = quantity;
-      localStorage.setItem('cart', JSON.stringify(localCart));
+      writeLocalCart(localCart);
     }
     return { success: true };
   }
@@ -113,17 +165,17 @@ export async function updateCartItem(cartItemId, quantity) {
   const item = localCart.find(i => i.id === localId || i.cartItemId === cartItemId);
   if (item) {
     item.quantity = quantity;
-    localStorage.setItem('cart', JSON.stringify(localCart));
+    writeLocalCart(localCart);
   }
   return { success: true };
 }
 
 export async function removeFromCart(cartItemId) {
-  const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const localCart = readLocalCart();
   const localId = parseCartItemId(cartItemId);
   if (isLocalCartId(cartItemId)) {
     const filtered = localCart.filter(i => i.id !== localId && i.cartItemId !== cartItemId);
-    localStorage.setItem('cart', JSON.stringify(filtered));
+    writeLocalCart(filtered);
     return { success: true };
   }
 
@@ -139,12 +191,13 @@ export async function removeFromCart(cartItemId) {
 
   // Local fallback
   const filtered = localCart.filter(i => i.id !== localId && i.cartItemId !== cartItemId);
-  localStorage.setItem('cart', JSON.stringify(filtered));
+  writeLocalCart(filtered);
   return { success: true };
 }
 
 export async function clearCart(userId) {
-  localStorage.setItem('cart', '[]');
+  writeLocalCart([]);
+  localStorage.setItem(CART_CLEARED_AT_KEY, String(Date.now()));
 
   let remoteOk = true;
   const cartUserId = getCartUserId(userId);

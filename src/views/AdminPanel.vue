@@ -609,18 +609,18 @@ const saveProduct = async () => {
     return
   }
 
+  const payload = {
+    ...productForm.value,
+    price: Number(productForm.value.price),
+    stock: Number(productForm.value.stock),
+    rating: Number(productForm.value.rating || 4.6),
+    reviews: Number(productForm.value.reviews || 0),
+    active: productForm.value.active !== false,
+  }
+
+  const normalizedPayload = normalizeProductPayload(payload)
+
   try {
-    const payload = {
-      ...productForm.value,
-      price: Number(productForm.value.price),
-      stock: Number(productForm.value.stock),
-      rating: Number(productForm.value.rating || 4.6),
-      reviews: Number(productForm.value.reviews || 0),
-      active: productForm.value.active !== false,
-    }
-
-    const normalizedPayload = normalizeProductPayload(payload)
-
     if (modalMode.value === 'add') {
       productStore.createProduct(normalizedPayload)
       showToast("Mahsulot qo'shildi.", 'success')
@@ -634,8 +634,7 @@ const saveProduct = async () => {
 
     showModal.value = false
   } catch (err) {
-    productStore.updateProduct(editingProductId.value, normalizedPayload)
-    showToast('Mahsulot yangilandi.', 'success')
+    showToast(err.message || 'Mahsulotni saqlashda xatolik bor.', 'error')
   }
 }
 

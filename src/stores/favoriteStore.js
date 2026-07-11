@@ -1,15 +1,25 @@
 import { defineStore } from "pinia";
 
+const readFavorites = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("favorites") || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    localStorage.setItem("favorites", "[]");
+    return [];
+  }
+};
+
 export const useFavoriteStore = defineStore("favorite", {
   state: () => ({
-    items: JSON.parse(localStorage.getItem("favorites")) || []
+    items: readFavorites()
   }),
 
   getters: {
     favoriteCount: (state) => state.items.length,
 
     isFavorite: (state) => {
-      return (id) => state.items.some(item => item.id === id);
+      return (id) => state.items.some(item => String(item.id) === String(id));
     }
   },
 
@@ -26,7 +36,7 @@ export const useFavoriteStore = defineStore("favorite", {
     },
 
     removeFromFavorites(id) {
-      this.items = this.items.filter(item => item.id !== id);
+      this.items = this.items.filter(item => String(item.id) !== String(id));
       this.saveToLocalStorage();
     },
 

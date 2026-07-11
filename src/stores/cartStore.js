@@ -1,9 +1,30 @@
 import { defineStore } from "pinia";
-import { clearCart as clearCartApi } from "../api/mockCart";
+import {
+  addToCart as addToCartApi,
+  clearCart as clearCartApi,
+} from "../api/mockCart";
+
+const readCart = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("cart") || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    localStorage.setItem("cart", "[]");
+    return [];
+  }
+};
+
+const readUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  } catch {
+    return {};
+  }
+};
 
 export const useCartStore = defineStore("cart", {
   state: () => ({
-    items: JSON.parse(localStorage.getItem("cart")) || []
+    items: readCart()
   }),
 
   getters: {
@@ -34,10 +55,10 @@ export const useCartStore = defineStore("cart", {
       }));
 
       const merged = [...remoteItems];
-      const remoteIds = new Set(remoteItems.map(item => item.id));
+      const remoteIds = new Set(remoteItems.map(item => String(item.id)));
 
       this.items.forEach((localItem) => {
-        if (!remoteIds.has(localItem.id)) {
+        if (!remoteIds.has(String(localItem.id))) {
           merged.push(localItem);
         }
       });
@@ -46,24 +67,40 @@ export const useCartStore = defineStore("cart", {
       this.saveToLocalStorage();
     },
 
-addToCart(product) {
-  const existingItem = this.items.find(item => item.id === product.id);
+    addToCart(product) {
+      if (!product?.id) return;
 
-  if (existingItem) {
-    existingItem.quantity++;
-  } else {
-    this.items.push({
-      ...product,
-      quantity: 1,
-      cartItemId: `local_${product.id}`,
-    });
-  }
+      const existingItem = this.items.find(item => String(item.id) === String(product.id));
 
-  this.saveToLocalStorage();
-},
+      if (existingItem) {
+        existingItem.quantity++;
+      } else {
+        this.items.push({
+          ...product,
+          quantity: 1,
+          cartItemId: `local_${product.id}`,
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      this.saveToLocalStorage();
+
+      const user = readUser();
+      addToCartApi(user.id, product, 1, { syncLocal: false })
+        .then((remoteItem) => {
+          if (!remoteItem?.cartItemId) return;
+
+          const item = this.items.find(cartItem => String(cartItem.id) === String(product.id));
+          if (!item || !String(item.cartItemId || "").startsWith("local_")) return;
+
+          item.cartItemId = remoteItem.cartItemId;
+          this.saveToLocalStorage();
+        })
+        .catch(() => {});
+    },
 
     increaseQuantity(id) {
-      const item = this.items.find(item => item.id === id);
+      const item = this.items.find(item => String(item.id) === String(id));
       if (item) {
         item.quantity++;
         this.saveToLocalStorage();
@@ -71,7 +108,7 @@ addToCart(product) {
     },
 
     decreaseQuantity(id) {
-      const item = this.items.find(item => item.id === id);
+      const item = this.items.find(item => String(item.id) === String(id));
       if (!item) return;
       if (item.quantity > 1) {
         item.quantity--;
@@ -82,7 +119,7 @@ addToCart(product) {
     },
 
     removeFromCart(id) {
-      this.items = this.items.filter(item => item.id !== id);
+      this.items = this.items.filter(item => String(item.id) !== String(id));
       this.saveToLocalStorage();
     },
 
@@ -91,7 +128,7 @@ addToCart(product) {
       this.items = [];
       this.saveToLocalStorage();
 
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const user = readUser();
       if (user.id) {
         const result = await clearCartApi(user.id);
         return result;
