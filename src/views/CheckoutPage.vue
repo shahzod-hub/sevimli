@@ -112,7 +112,7 @@ const placeOrder = async () => {
 
     const result = await ordersApi.saveOrder(order);
     if (!result.success) {
-      showToast?.("Buyurtma saqlandi, lekin masofaviy serverga yuborilmadi. LocalStorage dan ko'rishingiz mumkin.", "warning");
+      showToast?.("Buyurtma lokal saqlandi, lekin MockAPI'ga yuborilmadi. Admin boshqa hisobdan ko'rmasligi mumkin.", "warning");
     }
 
     const clearResult = await cart.clearCart();

@@ -45,6 +45,7 @@ const mapCartItem = (item) => ({
 
 const isActiveRemoteCartItem = (item) => {
   if (item.recordType === 'product' || item.entityType === 'product') return false;
+  if (item.recordType === 'order' || item.entityType === 'order') return false;
   if (item.status || item.customerName || item.customerPhone || item.customerAddress) return false;
 
   const clearedAt = Number(localStorage.getItem(CART_CLEARED_AT_KEY) || 0);
@@ -212,9 +213,13 @@ export async function clearCart(userId) {
       const items = await res.json();
       console.log("CLEAR CART ITEMS:", items); // <-- debug uchun, item strukturasini ko'rish
 
-      if (Array.isArray(items) && items.length > 0) {
+      const cartItems = Array.isArray(items)
+        ? items.filter((item) => item.recordType !== 'product' && item.entityType !== 'product' && item.recordType !== 'order' && item.entityType !== 'order')
+        : [];
+
+      if (cartItems.length > 0) {
         const results = await Promise.allSettled(
-          items.map(item => {
+          cartItems.map(item => {
             const itemId = item.id ?? item.cartItemId ?? item._id;
             if (!itemId) {
               console.error("Item ID topilmadi, o'chirib bo'lmadi:", item);
