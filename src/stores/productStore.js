@@ -48,17 +48,7 @@ const saveProductsToStorage = (products) => {
 
 const mergeProducts = (remoteProducts, localProducts) => {
   const map = new Map();
-  const remoteNames = new Set(
-    remoteProducts
-      .map((product) => String(product.name || product.title || "").toLowerCase())
-      .filter(Boolean)
-  );
-  const visibleLocalProducts = localProducts.filter((product) => {
-    const name = String(product.name || product.title || "").toLowerCase();
-    return !remoteNames.has(name);
-  });
-
-  [...visibleLocalProducts, ...remoteProducts].forEach((product, index) => {
+  [...localProducts, ...remoteProducts].forEach((product, index) => {
     const normalized = normalizeProduct(product, index);
     map.set(String(normalized.id), normalized);
   });
@@ -123,7 +113,6 @@ export const useProductStore = defineStore("products", {
 
     ensureLoaded() {
       if (!this.loaded) this.loadProducts();
-      this.syncProductsFromRemote();
     },
 
     saveProducts() {
