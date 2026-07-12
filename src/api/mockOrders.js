@@ -3,13 +3,34 @@ const ORDERS_URL = `${API_BASE}/orders`;
 const ORDERS_STORAGE_KEY = 'sevimli_admin_orders';
 const ORDER_API_TIMEOUT = 5000;
 
+const normalizeOrderItems = (order) => {
+  if (Array.isArray(order.items)) return order.items;
+
+  if (order.items && typeof order.items === 'object') {
+    return Object.values(order.items);
+  }
+
+  if (typeof order.itemsJson === 'string') {
+    try {
+      const parsed = JSON.parse(order.itemsJson);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+};
+
 const normalizeOrder = (order) => ({
   id: order.id ?? `order_${Date.now()}`,
   customerName: order.customerName || order.name || 'Mijoz',
   customerPhone: order.customerPhone || order.phone || '',
   customerAddress: order.customerAddress || order.address || '',
   payment: order.payment || 'cash',
-  items: Array.isArray(order.items) ? order.items : [],
+  items: normalizeOrderItems(order),
+  itemsJson: order.itemsJson || JSON.stringify(normalizeOrderItems(order)),
+  itemCount: Number(order.itemCount || normalizeOrderItems(order).length),
   totalPrice: Number(order.totalPrice || order.total || 0),
   status: order.status || 'new',
   createdAt: order.createdAt || new Date().toISOString(),
