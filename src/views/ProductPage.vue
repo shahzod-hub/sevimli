@@ -31,8 +31,9 @@ const toggleFav = () => {
   favorite.toggleFavorite(product.value);
 };
 
-onMounted(() => {
+onMounted(async () => {
   productStore.ensureLoaded();
+  await productStore.syncProductsFromRemote();
 });
 </script>
 

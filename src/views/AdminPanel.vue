@@ -49,7 +49,7 @@
             </div>
             <div class="section-actions">
               <button class="btn secondary" @click="openAddProductModal">➕ Yangi mahsulot</button>
-              <button class="btn secondary" @click="importProductsFromLocal" :disabled="importLoading">
+              <button class="btn secondary" @click="importProductsToMockApi" :disabled="importLoading">
                 {{ importLoading ? 'Import qilinmoqda...' : 'Mahsulotlarni import qilish' }}
               </button>
               <button class="btn secondary" @click="exportProductsCSV">📤 Export CSV</button>
@@ -549,19 +549,19 @@ const refreshAll = async () => {
   await Promise.all([fetchProducts(), fetchOrders(), fetchUsers()])
 }
 
-const importProductsFromLocal = async () => {
+const importProductsToMockApi = async () => {
   importLoading.value = true
 
   try {
     const createdCount = await productStore.importDefaultProducts()
 
     if (createdCount > 0) {
-      showToast(`${createdCount} ta mahsulot lokalga import qilindi.`, 'success')
+      showToast(`${createdCount} ta mahsulot MockAPI'ga import qilindi.`, 'success')
     } else {
-      showToast('Mahsulotlar allaqachon lokalga import qilingan.', 'info')
+      showToast("Mahsulotlar allaqachon MockAPI'da bor.", 'info')
     }
   } catch (err) {
-    showToast('Mahsulotlarni import qilishda xatolik yuz berdi.', 'error')
+    showToast(err.message || 'Mahsulotlarni MockAPI ga import qilishda xatolik yuz berdi.', 'error')
     console.error(err)
   } finally {
     importLoading.value = false
