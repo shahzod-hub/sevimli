@@ -38,10 +38,17 @@ const form = ref({
 const categories = ["Mevalar", "Sabzavotlar", "Sut mahsulotlari", "Goshtlar", "Shirinliklar", "Ichimliklar"];
 
 const fetchProducts = async () => {
-  loading.value = false;
   error.value = null;
-  productStore.ensureLoaded();
-  productStore.initStorageSync();
+  loading.value = true;
+  try {
+    productStore.ensureLoaded();
+    await productStore.syncProductsFromRemote();
+    productStore.initStorageSync();
+  } catch (err) {
+    error.value = err.message || "Mahsulotlar yuklanmadi";
+  } finally {
+    loading.value = false;
+  }
 };
 
 // Seed Products logic
@@ -66,7 +73,7 @@ const seedProducts = async () => {
         image: p.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=300&fit=crop",
         description: p.description || ""
       };
-      productStore.createProduct(newProduct);
+      await productStore.createProduct(newProduct);
       seedProgress.value = i + 1;
       await new Promise(r => setTimeout(r, 150));
     }
@@ -84,7 +91,7 @@ const seedProducts = async () => {
 const handleDelete = async (id) => {
   if (!confirm("Haqiqatan ham ushbu mahsulotni o'chirmoqchimisiz?")) return;
   try {
-    productStore.deleteProduct(id);
+    await productStore.deleteProduct(id);
     showToast("Mahsulot o'chirildi! 🗑️", "success");
   } catch (err) {
     console.error(err);
@@ -144,14 +151,12 @@ const saveProduct = async () => {
   };
 
   try {
-    let response;
-
     if (modalMode.value === "add") {
-      productStore.createProduct(payload);
+      await productStore.createProduct(payload);
     } else {
-      const updated = productStore.updateProduct(editingProductId.value, payload);
+      const updated = await productStore.updateProduct(editingProductId.value, payload);
       if (!updated) {
-        productStore.createProduct({ ...payload, id: editingProductId.value });
+        await productStore.createProduct({ ...payload, id: editingProductId.value });
       }
     }
 

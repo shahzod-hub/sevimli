@@ -29,6 +29,7 @@ const toProductPayload = (product, stock) => ({
 
 const decreaseProductStocks = async (items) => {
   productStore.ensureLoaded();
+  await productStore.syncProductsFromRemote();
 
   for (const item of items) {
     const product = productStore.products.find(
@@ -44,7 +45,7 @@ const decreaseProductStocks = async (items) => {
 
     const nextStock = currentStock - item.quantity;
     const payload = toProductPayload(product, nextStock);
-    productStore.updateProduct(product.id, payload);
+    await productStore.updateProduct(product.id, payload);
   }
 };
 
@@ -93,6 +94,15 @@ const placeOrder = async () => {
         quantity: item.quantity,
         total: item.price * item.quantity,
       })),
+      itemCount: cart.items.length,
+      itemsJson: JSON.stringify(cart.items.map(item => ({
+        productId: item.id,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+        total: item.price * item.quantity,
+      }))),
       totalPrice: cart.totalPrice,
       status: "new",
       createdAt: new Date().toISOString(),

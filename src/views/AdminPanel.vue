@@ -463,6 +463,7 @@ const fetchProducts = async () => {
   error.value = ''
   try {
     productStore.ensureLoaded()
+    await productStore.syncProductsFromRemote()
     productStore.initStorageSync()
   } catch (err) {
     if (!products.value.length) error.value = err.message
@@ -552,7 +553,7 @@ const importProductsFromLocal = async () => {
   importLoading.value = true
 
   try {
-    const createdCount = productStore.importDefaultProducts()
+    const createdCount = await productStore.importDefaultProducts()
 
     if (createdCount > 0) {
       showToast(`${createdCount} ta mahsulot lokalga import qilindi.`, 'success')
@@ -622,12 +623,12 @@ const saveProduct = async () => {
 
   try {
     if (modalMode.value === 'add') {
-      productStore.createProduct(normalizedPayload)
+      await productStore.createProduct(normalizedPayload)
       showToast("Mahsulot qo'shildi.", 'success')
     } else {
-      const updated = productStore.updateProduct(editingProductId.value, normalizedPayload)
+      const updated = await productStore.updateProduct(editingProductId.value, normalizedPayload)
       if (!updated) {
-        productStore.createProduct({ ...normalizedPayload, id: editingProductId.value })
+        await productStore.createProduct({ ...normalizedPayload, id: editingProductId.value })
       }
       showToast('Mahsulot yangilandi.', 'success')
     }
@@ -641,7 +642,7 @@ const saveProduct = async () => {
 const deleteProduct = async (id) => {
   if (!confirm('Mahsulotni o‘chirishni tasdiqlaysizmi?')) return
   try {
-    productStore.deleteProduct(id)
+    await productStore.deleteProduct(id)
     showToast("Mahsulot o'chirildi.", 'success')
   } catch (err) {
     showToast(err.message || 'Mahsulotni o‘chirishda xatolik bor.', 'error')
