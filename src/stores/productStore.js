@@ -115,7 +115,6 @@ export const useProductStore = defineStore("products", {
     },
 
     async createProduct(payload) {
-      if (!this.loaded) this.loadProducts();
       const product = normalizeProduct({
         ...payload,
         id: payload.id ?? Date.now(),
@@ -124,8 +123,6 @@ export const useProductStore = defineStore("products", {
         reviews: payload.reviews || 0,
         createdAt: payload.createdAt || new Date().toISOString(),
       });
-      this.products.unshift(product);
-      this.saveProducts();
 
       try {
         const saved = await requestProducts(PRODUCTS_URL, {
@@ -133,11 +130,16 @@ export const useProductStore = defineStore("products", {
           body: JSON.stringify(product),
         });
         const remoteProduct = normalizeProduct(saved);
-        this.replaceProduct(product.id, remoteProduct);
+        this.products = [
+          remoteProduct,
+          ...this.products.filter((item) => String(item.id) !== String(remoteProduct.id)),
+        ];
+        this.loaded = true;
+        this.saveProducts();
         return remoteProduct;
       } catch (error) {
         console.warn("Remote create product failed:", error?.message || error);
-        return product;
+        throw new Error("Mahsulot MockAPI'ga saqlanmadi. MockAPI'da products endpoint borligini tekshiring.");
       }
     },
 
@@ -158,26 +160,36 @@ export const useProductStore = defineStore("products", {
         id: this.products[index].id,
         title: payload.name || this.products[index].title,
       });
-      this.products[index] = updated;
-      this.saveProducts();
-
       try {
         const saved = await requestProducts(`${PRODUCTS_URL}/${id}`, {
           method: "PUT",
           body: JSON.stringify(updated),
         });
         const remoteProduct = normalizeProduct(saved);
-        this.replaceProduct(id, remoteProduct);
+        this.products[index] = remoteProduct;
+        this.saveProducts();
         return remoteProduct;
       } catch (error) {
         console.warn("Remote update product failed:", error?.message || error);
-      }
 
-      return updated;
+        try {
+          const saved = await requestProducts(PRODUCTS_URL, {
+            method: "POST",
+            body: JSON.stringify(updated),
+          });
+          const remoteProduct = normalizeProduct(saved);
+          this.products[index] = remoteProduct;
+          this.saveProducts();
+          return remoteProduct;
+        } catch (createError) {
+          console.warn("Remote upsert product failed:", createError?.message || createError);
+          throw new Error("Mahsulot MockAPI'da yangilanmadi. products endpointni tekshiring.");
+        }
+      }
     },
 
     replaceProduct(oldId, payload) {
-      this.ensureLoaded();
+      if (!this.loaded) this.loadProducts();
       const index = this.products.findIndex((product) => String(product.id) === String(oldId));
       if (index === -1) return null;
 
@@ -194,13 +206,13 @@ export const useProductStore = defineStore("products", {
 
     async deleteProduct(id) {
       if (!this.loaded) this.loadProducts();
-      this.products = this.products.filter((product) => String(product.id) !== String(id));
-      this.saveProducts();
-
       try {
         await requestProducts(`${PRODUCTS_URL}/${id}`, { method: "DELETE" });
+        this.products = this.products.filter((product) => String(product.id) !== String(id));
+        this.saveProducts();
       } catch (error) {
         console.warn("Remote delete product failed:", error?.message || error);
+        throw new Error("Mahsulot MockAPI'dan o'chirilmadi. products endpointni tekshiring.");
       }
     },
 

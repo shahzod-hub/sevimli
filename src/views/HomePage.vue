@@ -22,8 +22,9 @@ const filteredProducts = computed(() => {
   });
 });
 
-onMounted(() => {
+onMounted(async () => {
   productStore.ensureLoaded();
+  await productStore.syncProductsFromRemote();
   productStore.initStorageSync();
   try {
     const saved = JSON.parse(localStorage.getItem('sevimli_settings') || '{}');

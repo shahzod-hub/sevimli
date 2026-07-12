@@ -21,8 +21,9 @@ const addToCart = (product) => {
   showToast?.(`${product.name} savatga qo'shildi!`);
 };
 
-onMounted(() => {
+onMounted(async () => {
   productStore.ensureLoaded();
+  await productStore.syncProductsFromRemote();
 });
 </script>
 

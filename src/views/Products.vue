@@ -53,7 +53,7 @@ const fetchProducts = async () => {
 
 // Seed Products logic
 const seedProducts = async () => {
-  if (!confirm("Boshlang'ich mahsulotlar to'plamini (15 ta mahsulot) lokal saqlashga yuklamoqchimisiz?")) return;
+  if (!confirm("Boshlang'ich mahsulotlar to'plamini (15 ta mahsulot) MockAPI'ga yuklamoqchimisiz?")) return;
   seeding.value = true;
   seedProgress.value = 0;
   
