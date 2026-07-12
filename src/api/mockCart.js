@@ -44,6 +44,7 @@ const mapCartItem = (item) => ({
 });
 
 const isActiveRemoteCartItem = (item) => {
+  if (item.recordType === 'product' || item.entityType === 'product') return false;
   if (item.status || item.customerName || item.customerPhone || item.customerAddress) return false;
 
   const clearedAt = Number(localStorage.getItem(CART_CLEARED_AT_KEY) || 0);
@@ -110,6 +111,7 @@ export async function addToCart(userId, product, quantity = 1, options = {}) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        recordType: 'cartItem',
         userId: cartUserId,
         productId: product.id,
         name: product.name,

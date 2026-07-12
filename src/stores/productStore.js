@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import defaultProducts from "../data/products.js";
 
 const API_BASE = "https://6a3c40e4e4a07f202e16a52c.mockapi.io/sevimli";
-const PRODUCTS_URL = `${API_BASE}/products`;
+const PRODUCTS_URL = `${API_BASE}/cart`;
 const STORAGE_KEY = "sevimli_products";
 const PRODUCT_API_TIMEOUT = 5000;
 let storageSyncInitialized = false;
@@ -24,6 +24,8 @@ const normalizeProduct = (product, index = 0) => ({
   stock: Number(product.stock ?? 10),
   barcode: product.barcode || "",
   active: product.active !== false,
+  recordType: product.recordType || product.entityType || "",
+  createdAt: product.createdAt || "",
 });
 
 const readProducts = () => {
@@ -46,12 +48,25 @@ const saveProductsToStorage = (products) => {
 
 const mergeProducts = (remoteProducts, localProducts) => {
   const map = new Map();
-  [...localProducts, ...remoteProducts].forEach((product, index) => {
+  const remoteNames = new Set(
+    remoteProducts
+      .map((product) => String(product.name || product.title || "").toLowerCase())
+      .filter(Boolean)
+  );
+  const visibleLocalProducts = localProducts.filter((product) => {
+    const name = String(product.name || product.title || "").toLowerCase();
+    return !remoteNames.has(name);
+  });
+
+  [...visibleLocalProducts, ...remoteProducts].forEach((product, index) => {
     const normalized = normalizeProduct(product, index);
     map.set(String(normalized.id), normalized);
   });
   return [...map.values()];
 };
+
+const isRemoteProduct = (item) =>
+  item?.recordType === "product" || item?.entityType === "product";
 
 const requestProducts = async (url, options = {}) => {
   const res = await fetch(url, {
@@ -90,10 +105,11 @@ export const useProductStore = defineStore("products", {
 
     async syncProductsFromRemote() {
       try {
-        const data = await requestProducts(`${PRODUCTS_URL}?sortBy=createdAt&order=desc`);
+        const data = await requestProducts(`${PRODUCTS_URL}?recordType=product&sortBy=createdAt&order=desc`);
         if (!Array.isArray(data)) throw new Error("Products response is not an array");
 
-        const merged = mergeProducts(data, this.products.length ? this.products : readProducts());
+        const remoteProducts = data.filter(isRemoteProduct);
+        const merged = mergeProducts(remoteProducts, this.products.length ? this.products : readProducts());
         this.products = merged;
         this.loaded = true;
         this.saveProducts();
@@ -118,6 +134,7 @@ export const useProductStore = defineStore("products", {
       const product = normalizeProduct({
         ...payload,
         id: payload.id ?? Date.now(),
+        recordType: "product",
         title: payload.name,
         rating: payload.rating || 4.6,
         reviews: payload.reviews || 0,
@@ -127,7 +144,7 @@ export const useProductStore = defineStore("products", {
       try {
         const saved = await requestProducts(PRODUCTS_URL, {
           method: "POST",
-          body: JSON.stringify(product),
+          body: JSON.stringify({ ...product, recordType: "product", entityType: "product" }),
         });
         const remoteProduct = normalizeProduct(saved);
         this.products = [
@@ -139,7 +156,7 @@ export const useProductStore = defineStore("products", {
         return remoteProduct;
       } catch (error) {
         console.warn("Remote create product failed:", error?.message || error);
-        throw new Error("Mahsulot MockAPI'ga saqlanmadi. MockAPI'da products endpoint borligini tekshiring.");
+        throw new Error("Mahsulot MockAPI'ga saqlanmadi. MockAPI'da cart resource borligini tekshiring.");
       }
     },
 
@@ -163,7 +180,7 @@ export const useProductStore = defineStore("products", {
       try {
         const saved = await requestProducts(`${PRODUCTS_URL}/${id}`, {
           method: "PUT",
-          body: JSON.stringify(updated),
+          body: JSON.stringify({ ...updated, recordType: "product", entityType: "product" }),
         });
         const remoteProduct = normalizeProduct(saved);
         this.products[index] = remoteProduct;
@@ -175,7 +192,7 @@ export const useProductStore = defineStore("products", {
         try {
           const saved = await requestProducts(PRODUCTS_URL, {
             method: "POST",
-            body: JSON.stringify(updated),
+            body: JSON.stringify({ ...updated, recordType: "product", entityType: "product" }),
           });
           const remoteProduct = normalizeProduct(saved);
           this.products[index] = remoteProduct;
@@ -183,7 +200,7 @@ export const useProductStore = defineStore("products", {
           return remoteProduct;
         } catch (createError) {
           console.warn("Remote upsert product failed:", createError?.message || createError);
-          throw new Error("Mahsulot MockAPI'da yangilanmadi. products endpointni tekshiring.");
+          throw new Error("Mahsulot MockAPI'da yangilanmadi. cart resource'ni tekshiring.");
         }
       }
     },
@@ -212,15 +229,20 @@ export const useProductStore = defineStore("products", {
         this.saveProducts();
       } catch (error) {
         console.warn("Remote delete product failed:", error?.message || error);
-        throw new Error("Mahsulot MockAPI'dan o'chirilmadi. products endpointni tekshiring.");
+        throw new Error("Mahsulot MockAPI'dan o'chirilmadi. cart resource'ni tekshiring.");
       }
     },
 
     async importDefaultProducts() {
       if (!this.loaded) this.loadProducts();
-      const existingNames = new Set(this.products.map((product) => product.name.toLowerCase()));
+      await this.syncProductsFromRemote();
+      const existingNames = new Set(
+        this.products
+          .filter(isRemoteProduct)
+          .map((product) => product.name.toLowerCase())
+      );
       const incoming = defaultProducts
-        .map(normalizeProduct)
+        .map((product) => normalizeProduct({ ...product, recordType: "product" }))
         .filter((product) => !existingNames.has(product.name.toLowerCase()));
 
       for (const product of incoming) {
