@@ -203,49 +203,59 @@ export async function clearCart(userId) {
   localStorage.setItem(CART_CLEARED_AT_KEY, String(Date.now()));
 
   let remoteOk = true;
-  const cartUserId = getCartUserId(userId);
+  const cartUserId = userId;
+  const guestUserId = localStorage.getItem(CART_USER_KEY);
 
-  try {
-    const res = await fetch(`${BASE_URL}?userId=${encodeURIComponent(cartUserId)}`, {
-      signal: AbortSignal.timeout(CART_API_TIMEOUT),
-    });
-    if (res.ok) {
-      const items = await res.json();
-      console.log("CLEAR CART ITEMS:", items); // <-- debug uchun, item strukturasini ko'rish
+  const deleteForUser = async (uid) => {
+    if (!uid) return;
+    try {
+      const res = await fetch(`${BASE_URL}?userId=${encodeURIComponent(uid)}`, {
+        signal: AbortSignal.timeout(CART_API_TIMEOUT),
+      });
+      if (res.ok) {
+        const items = await res.json();
+        console.log("CLEAR CART ITEMS for user", uid, ":", items);
 
-      const cartItems = Array.isArray(items)
-        ? items.filter((item) => item.recordType !== 'product' && item.entityType !== 'product' && item.recordType !== 'order' && item.entityType !== 'order')
-        : [];
+        const cartItems = Array.isArray(items)
+          ? items.filter((item) => item.recordType !== 'product' && item.entityType !== 'product' && item.recordType !== 'order' && item.entityType !== 'order')
+          : [];
 
-      if (cartItems.length > 0) {
-        const results = await Promise.allSettled(
-          cartItems.map(item => {
-            const itemId = item.id ?? item.cartItemId ?? item._id;
-            if (!itemId) {
-              console.error("Item ID topilmadi, o'chirib bo'lmadi:", item);
-              return Promise.resolve({ ok: false });
-            }
-            return fetch(`${BASE_URL}/${itemId}`, {
-              method: 'DELETE',
-              signal: AbortSignal.timeout(5000),
-            });
-          })
-        );
+        if (cartItems.length > 0) {
+          const results = await Promise.allSettled(
+            cartItems.map(item => {
+              const itemId = item.id ?? item.cartItemId ?? item._id;
+              if (!itemId) {
+                console.error("Item ID topilmadi, o'chirib bo'lmadi:", item);
+                return Promise.resolve({ ok: false });
+              }
+              return fetch(`${BASE_URL}/${itemId}`, {
+                method: 'DELETE',
+                signal: AbortSignal.timeout(5000),
+              });
+            })
+          );
 
-        remoteOk = results.every(
-          r => r.status === 'fulfilled' && r.value.ok
-        );
+          const userOk = results.every(
+            r => r.status === 'fulfilled' && r.value.ok
+          );
 
-        if (!remoteOk) {
-          console.error("Ba'zi cart itemlar MockAPI'dan o'chmadi:", results);
+          if (!userOk) {
+            console.error("Ba'zi cart itemlar MockAPI'dan o'chmadi:", results);
+            remoteOk = false;
+          }
         }
+      } else {
+        remoteOk = false;
       }
-    } else {
+    } catch (e) {
+      console.error("Failed to clear remote cart for user", uid, e);
       remoteOk = false;
     }
-  } catch (e) {
-    console.error("Failed to clear remote cart", e);
-    remoteOk = false;
+  };
+
+  await deleteForUser(cartUserId);
+  if (guestUserId && guestUserId !== cartUserId) {
+    await deleteForUser(guestUserId);
   }
 
   return { success: true, remoteOk };

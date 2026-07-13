@@ -7,26 +7,30 @@ const STORAGE_KEY = "sevimli_products";
 const PRODUCT_API_TIMEOUT = 5000;
 let storageSyncInitialized = false;
 
-const normalizeProduct = (product, index = 0) => ({
-  id: product.id ?? Date.now() + index,
-  name: product.name || product.title || "",
-  title: product.title || product.name || "",
-  description: product.description || "",
-  price: Number(product.price || 0),
-  category: product.category || "Boshqa",
-  image:
-    product.image ||
-    "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=300&fit=crop",
-  rating: Number(product.rating || 4.6),
-  reviews: Number(product.reviews || 0),
-  badge: product.badge || "",
-  unit: product.unit || "dona",
-  stock: Number(product.stock ?? 10),
-  barcode: product.barcode || "",
-  active: product.active !== false,
-  recordType: product.recordType || product.entityType || "",
-  createdAt: product.createdAt || "",
-});
+const normalizeProduct = (product, index = 0) => {
+  const isRemote = product.recordType === "product" || product.entityType === "product";
+  return {
+    id: product.id ?? Date.now() + index,
+    remoteId: product.remoteId || (isRemote ? product.id : null),
+    name: product.name || product.title || "",
+    title: product.title || product.name || "",
+    description: product.description || "",
+    price: Number(product.price || 0),
+    category: product.category || "Boshqa",
+    image:
+      product.image ||
+      "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=300&fit=crop",
+    rating: Number(product.rating || 4.6),
+    reviews: Number(product.reviews || 0),
+    badge: product.badge || "",
+    unit: product.unit || "dona",
+    stock: Number(product.stock ?? 10),
+    barcode: product.barcode || "",
+    active: product.active !== false,
+    recordType: product.recordType || product.entityType || "",
+    createdAt: product.createdAt || "",
+  };
+};
 
 const readProducts = () => {
   try {
@@ -47,12 +51,33 @@ const saveProductsToStorage = (products) => {
 };
 
 const mergeProducts = (remoteProducts, localProducts) => {
-  const map = new Map();
-  [...localProducts, ...remoteProducts].forEach((product, index) => {
-    const normalized = normalizeProduct(product, index);
-    map.set(String(normalized.id), normalized);
+  const mapByName = new Map();
+  localProducts.forEach((product) => {
+    const norm = normalizeProduct(product);
+    mapByName.set(norm.name.toLowerCase().trim(), norm);
   });
-  return [...map.values()];
+
+  remoteProducts.forEach((remoteProduct) => {
+    const normRemote = normalizeProduct(remoteProduct);
+    const key = normRemote.name.toLowerCase().trim();
+    const existing = mapByName.get(key);
+    
+    if (existing) {
+      mapByName.set(key, {
+        ...existing,
+        ...normRemote,
+        id: existing.id,
+        remoteId: remoteProduct.id,
+      });
+    } else {
+      mapByName.set(key, {
+        ...normRemote,
+        remoteId: remoteProduct.id,
+      });
+    }
+  });
+
+  return [...mapByName.values()];
 };
 
 const isRemoteProduct = (item) =>
@@ -138,13 +163,14 @@ export const useProductStore = defineStore("products", {
           body: JSON.stringify({ ...product, recordType: "product", entityType: "product" }),
         });
         const remoteProduct = normalizeProduct(saved);
+        const normalizedRemote = { ...remoteProduct, id: product.id, remoteId: saved.id };
         this.products = [
-          remoteProduct,
-          ...this.products.filter((item) => String(item.id) !== String(remoteProduct.id)),
+          normalizedRemote,
+          ...this.products.filter((item) => String(item.id) !== String(product.id)),
         ];
         this.loaded = true;
         this.saveProducts();
-        return remoteProduct;
+        return normalizedRemote;
       } catch (error) {
         console.warn("Remote create product failed:", error?.message || error);
         throw new Error("Mahsulot MockAPI'ga saqlanmadi. MockAPI'da cart resource borligini tekshiring.");
@@ -162,36 +188,46 @@ export const useProductStore = defineStore("products", {
       const index = this.products.findIndex((product) => String(product.id) === String(id));
       if (index === -1) return null;
 
+      const product = this.products[index];
       const updated = normalizeProduct({
-        ...this.products[index],
+        ...product,
         ...payload,
-        id: this.products[index].id,
-        title: payload.name || this.products[index].title,
+        id: product.id,
+        remoteId: product.remoteId,
+        title: payload.name || product.title,
       });
-      try {
-        const saved = await requestProducts(`${PRODUCTS_URL}/${id}`, {
-          method: "PUT",
-          body: JSON.stringify({ ...updated, recordType: "product", entityType: "product" }),
-        });
-        const remoteProduct = normalizeProduct(saved);
-        this.products[index] = remoteProduct;
-        this.saveProducts();
-        return remoteProduct;
-      } catch (error) {
-        console.warn("Remote update product failed:", error?.message || error);
 
+      if (updated.remoteId) {
+        try {
+          const saved = await requestProducts(`${PRODUCTS_URL}/${updated.remoteId}`, {
+            method: "PUT",
+            body: JSON.stringify({ ...updated, id: updated.remoteId, recordType: "product", entityType: "product" }),
+          });
+          const remoteProduct = normalizeProduct(saved);
+          this.products[index] = { ...remoteProduct, id: updated.id, remoteId: saved.id };
+          this.saveProducts();
+          return this.products[index];
+        } catch (error) {
+          console.warn("Remote update product failed, saving locally:", error?.message || error);
+          this.products[index] = updated;
+          this.saveProducts();
+          return updated;
+        }
+      } else {
         try {
           const saved = await requestProducts(PRODUCTS_URL, {
             method: "POST",
             body: JSON.stringify({ ...updated, recordType: "product", entityType: "product" }),
           });
           const remoteProduct = normalizeProduct(saved);
-          this.products[index] = remoteProduct;
+          this.products[index] = { ...remoteProduct, id: updated.id, remoteId: saved.id };
           this.saveProducts();
-          return remoteProduct;
-        } catch (createError) {
-          console.warn("Remote upsert product failed:", createError?.message || createError);
-          throw new Error("Mahsulot MockAPI'da yangilanmadi. cart resource'ni tekshiring.");
+          return this.products[index];
+        } catch (error) {
+          console.warn("Remote create product failed during update, saving locally:", error?.message || error);
+          this.products[index] = updated;
+          this.saveProducts();
+          return updated;
         }
       }
     },
@@ -214,9 +250,14 @@ export const useProductStore = defineStore("products", {
 
     async deleteProduct(id) {
       if (!this.loaded) this.loadProducts();
+      const product = this.products.find((p) => String(p.id) === String(id));
+      if (!product) return;
+
       try {
-        await requestProducts(`${PRODUCTS_URL}/${id}`, { method: "DELETE" });
-        this.products = this.products.filter((product) => String(product.id) !== String(id));
+        if (product.remoteId) {
+          await requestProducts(`${PRODUCTS_URL}/${product.remoteId}`, { method: "DELETE" });
+        }
+        this.products = this.products.filter((p) => String(p.id) !== String(id));
         this.saveProducts();
       } catch (error) {
         console.warn("Remote delete product failed:", error?.message || error);
