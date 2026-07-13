@@ -46,12 +46,14 @@ const normalizeOrder = (order) => {
 };
 
 const requestCart = async (url, options = {}) => {
+  const headers = { ...options.headers };
+  if (options.body) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
     signal: AbortSignal.timeout(ORDER_API_TIMEOUT),
   });
 

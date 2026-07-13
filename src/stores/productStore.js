@@ -59,12 +59,14 @@ const isRemoteProduct = (item) =>
   item?.recordType === "product" || item?.entityType === "product";
 
 const requestProducts = async (url, options = {}) => {
+  const headers = { ...options.headers };
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers,
     signal: AbortSignal.timeout(PRODUCT_API_TIMEOUT),
   });
 
