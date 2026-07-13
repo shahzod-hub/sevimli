@@ -16,6 +16,7 @@ const form = ref({
   payment: "cash"
 });
 const submitted = ref(false);
+const loading = ref(false);
 
 const toProductPayload = (product, stock) => ({
   ...product,
@@ -50,6 +51,7 @@ const decreaseProductStocks = async (items) => {
 };
 
 const placeOrder = async () => {
+  if (loading.value) return;
   if (!form.value.name || !form.value.phone || !form.value.address) {
     showToast?.("Iltimos, barcha maydonlarni to'ldiring!", "error");
     return;
@@ -78,6 +80,7 @@ const placeOrder = async () => {
     return;
   }
 
+  loading.value = true;
   try {
     // Order is processed locally here.
     // Do not post orders to the cart endpoint, otherwise saved cart items may repopulate the cart.
@@ -128,6 +131,8 @@ const placeOrder = async () => {
       error instanceof Error ? error.message : "Buyurtma yuborilmadi",
       "error"
     );
+  } finally {
+    loading.value = false;
   }
 };
   
@@ -177,8 +182,8 @@ const placeOrder = async () => {
           </div>
         </div>
 
-        <button class="submit-btn" @click="placeOrder">
-          Buyurtma berish →
+        <button class="submit-btn" :disabled="loading" @click="placeOrder">
+          {{ loading ? "Yuborilmoqda..." : "Buyurtma berish →" }}
         </button>
       </div>
 
@@ -308,6 +313,13 @@ const placeOrder = async () => {
 }
 
 .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(37,99,235,0.35); }
+.submit-btn:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 
 .order-summary {
   background: white;
